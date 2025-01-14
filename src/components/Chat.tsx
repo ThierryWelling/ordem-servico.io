@@ -1,546 +1,349 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
+  Paper,
+  Typography,
+  IconButton,
   TextField,
-  Button,
   List,
   ListItem,
   ListItemText,
-  Typography,
-  Avatar,
-  IconButton,
-  Divider,
-  Paper,
-  InputAdornment,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  CircularProgress,
-  Badge,
-  Popover,
-  ListItemButton,
   ListItemAvatar,
-} from '@mui/material';
-import {
-  Send as SendIcon,
-  AttachFile as AttachFileIcon,
-  Close as CloseIcon,
-  Mic as MicIcon,
-  Image as ImageIcon,
-  VideoCall as VideoCallIcon,
-  Stop as StopIcon,
-  Notifications as NotificationsIcon,
-} from '@mui/icons-material';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
-import AudioVisualizer from './AudioVisualizer';
-import { mockUsers } from '../mock/data';
-
-interface ChatProps {
-  onClose: () => void;
-}
+  Avatar,
+  Button,
+  InputAdornment,
+  ListItemButton,
+  Popover
+} from "@mui/material";
+import SendIcon from "@mui/icons-material/Send";
+import MicIcon from "@mui/icons-material/Mic";
+import StopIcon from "@mui/icons-material/Stop";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import ImageIcon from "@mui/icons-material/Image";
+import VideoCallIcon from "@mui/icons-material/VideoCall";
+import CloseIcon from "@mui/icons-material/Close";
+import { useSelector } from "react-redux";
+import { RootState } from "../store";
+import AudioVisualizer from "./AudioVisualizer";
 
 interface Message {
   id: string;
-  text: string;
-  sender: string;
   senderId: string;
+  receiverId: string;
+  content: string;
   timestamp: string;
-  type: 'text' | 'image' | 'audio' | 'video';
-  content?: string;
-}
-
-interface Notification {
-  id: string;
-  message: string;
-  from: string;
-  timestamp: string;
+  type: 'text' | 'audio' | 'image' | 'video';
   read: boolean;
 }
 
-const Chat: React.FC<ChatProps> = ({ onClose }) => {
-  const [message, setMessage] = useState('');
+interface ChatProps {
+  selectedUserId?: string;
+  onClose?: () => void;
+}
+
+const Chat: React.FC<ChatProps> = ({ selectedUserId, onClose }) => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [audioStream, setAudioStream] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const { user } = useSelector((state: RootState) => state.auth);
-  const messagesEndRef = useRef<null | HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  const startVisualizerRef = useRef<() => Promise<MediaStream>>();
-  const stopVisualizerRef = useRef<() => void>();
-  const [mentionSearch, setMentionSearch] = useState('');
-  const [mentionAnchorEl, setMentionAnchorEl] = useState<null | HTMLElement>(null);
-  const [mentionPosition, setMentionPosition] = useState({ start: 0, end: 0 });
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationAnchorEl, setNotificationAnchorEl] = useState<null | HTMLElement>(null);
-  const textFieldRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [mentionAnchorEl, setMentionAnchorEl] = useState<HTMLElement | null>(null);
+  const [cursorPosition, setCursorPosition] = useState<number>(0);
+  const [notifications, setNotifications] = useState<Message[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const messageEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [startAudioCapture, setStartAudioCapture] = useState<(() => Promise<MediaStream>) | null>(null);
+  const [stopAudioCapture, setStopAudioCapture] = useState<(() => void) | null>(null);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
-  useEffect(() => {
-    if (isRecording) {
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      setRecordingTime(0);
-    }
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !user) return;
 
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+    const message: Message = {
+      id: Date.now().toString(),
+      senderId: user.id,
+      receiverId: selectedUserId || "",
+      content: newMessage,
+      timestamp: new Date().toISOString(),
+      type: "text",
+      read: false
     };
-  }, [isRecording]);
+
+    setMessages(prev => [...prev, message]);
+    setNewMessage("");
+  };
+
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleRecordAudio = () => {
+    if (!isRecording && startAudioCapture) {
+      startAudioCapture()
+        .then(() => setIsRecording(true))
+        .catch(error => console.error("Erro ao iniciar gravação:", error));
+    } else if (isRecording && stopAudioCapture) {
+      stopAudioCapture();
+      setIsRecording(false);
+    }
+  };
 
   const handleVisualizerReady = (
     startFn: () => Promise<MediaStream>,
     stopFn: () => void
   ) => {
-    startVisualizerRef.current = startFn;
-    stopVisualizerRef.current = stopFn;
+    setStartAudioCapture(() => startFn);
+    setStopAudioCapture(() => stopFn);
   };
 
-  const startRecording = async () => {
-    try {
-      if (startVisualizerRef.current) {
-        const stream = await startVisualizerRef.current();
-        const recorder = new MediaRecorder(stream);
-        const chunks: BlobPart[] = [];
+  const handleAttachmentClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            chunks.push(e.data);
-          }
-        };
+  const handleAttachmentClose = () => {
+    setAnchorEl(null);
+  };
 
-        recorder.onstop = () => {
-          const blob = new Blob(chunks, { type: 'audio/webm' });
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const newMessage: Message = {
-              id: Date.now().toString(),
-              text: `Áudio (${formatTime(recordingTime)})`,
-              sender: user?.name || 'Anônimo',
-              senderId: user?.id || '',
-              timestamp: new Date().toLocaleTimeString(),
-              type: 'audio',
-              content: e.target?.result as string,
-            };
-            setMessages(prev => [...prev, newMessage]);
-          };
-          reader.readAsDataURL(blob);
-          stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
-          if (stopVisualizerRef.current) {
-            stopVisualizerRef.current();
-          }
-        };
-
-        recorder.start();
-        setMediaRecorder(recorder);
-        setIsRecording(true);
-        setMediaStream(stream);
-      }
-    } catch (error) {
-      console.error('Erro ao iniciar gravação:', error);
-      alert('Erro ao acessar o microfone. Verifique as permissões.');
+  const handleMentionClick = () => {
+    if (inputRef.current) {
+      const curPos = inputRef.current.selectionStart || 0;
+      setCursorPosition(curPos);
+      setMentionAnchorEl(inputRef.current);
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-      if (stopVisualizerRef.current) {
-        stopVisualizerRef.current();
-      }
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
-      setIsRecording(false);
-      setMediaRecorder(null);
-      setMediaStream(null);
-    }
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleRecordAudio = () => {
-    if (!isRecording) {
-      startRecording();
-    } else {
-      stopRecording();
-    }
-  };
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setMessage(value);
-
-    // Procura por menções
-    const lastAtSymbol = value.lastIndexOf('@');
-    if (lastAtSymbol !== -1 && lastAtSymbol >= value.lastIndexOf(' ')) {
-      const searchTerm = value.slice(lastAtSymbol + 1);
-      setMentionSearch(searchTerm);
-      setMentionPosition({ start: lastAtSymbol, end: value.length });
-      if (textFieldRef.current) {
-        setMentionAnchorEl(textFieldRef.current);
-      }
-    } else {
-      setMentionAnchorEl(null);
-    }
-  };
-
-  const handleMentionSelect = (selectedUser: typeof mockUsers[0]) => {
-    const beforeMention = message.slice(0, mentionPosition.start);
-    const afterMention = message.slice(mentionPosition.end);
-    setMessage(`${beforeMention}@${selectedUser.username} ${afterMention}`);
+  const handleMentionClose = () => {
     setMentionAnchorEl(null);
   };
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      const mentions = message.match(/@(\w+)/g) || [];
-      const mentionedUsers = mentions.map(mention => 
-        mockUsers.find(u => u.username === mention.slice(1))
-      ).filter(Boolean);
+  const handleMentionSelect = (selectedUser: { id: string; name: string }) => {
+    const beforeCursor = newMessage.slice(0, cursorPosition);
+    const afterCursor = newMessage.slice(cursorPosition);
+    setNewMessage(`${beforeCursor}@${selectedUser.name} ${afterCursor}`);
+    handleMentionClose();
 
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        text: message,
-        sender: user?.name || 'Anônimo',
-        senderId: user?.id || '',
-        timestamp: new Date().toLocaleTimeString(),
-        type: 'text',
-      };
-
-      setMessages([...messages, newMessage]);
-
-      mentionedUsers.forEach(mentionedUser => {
-        if (mentionedUser) {
-          const notification: Notification = {
-            id: Date.now().toString(),
-            message: `${user?.name} mencionou você em uma mensagem: "${message}"`,
-            from: user?.name || 'Anônimo',
-            timestamp: new Date().toLocaleTimeString(),
-            read: false,
-          };
-          setNotifications(prev => [...prev, notification]);
-        }
-      });
-
-      setMessage('');
+    // Foca o input e move o cursor para depois da menção
+    if (inputRef.current) {
+      inputRef.current.focus();
+      const newCursorPosition = cursorPosition + selectedUser.name.length + 2;
+      inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const newMessage: Message = {
-          id: Date.now().toString(),
-          text: file.name,
-          sender: user?.name || 'Anônimo',
-          senderId: user?.id || '',
-          timestamp: new Date().toLocaleTimeString(),
-          type: file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio',
-          content: e.target?.result as string,
-        };
-        setMessages([...messages, newMessage]);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
   };
 
-  const handleNotificationClick = (event: React.MouseEvent<HTMLElement>) => {
-    setNotificationAnchorEl(event.currentTarget);
+  const handleCloseNotifications = () => {
+    setShowNotifications(false);
   };
 
-  const handleNotificationClose = () => {
-    setNotificationAnchorEl(null);
-  };
-
-  const handleMarkAsRead = (notificationId: string) => {
+  const handleMarkAsRead = (messageId: string) => {
     setNotifications(prev =>
-      prev.map(notification =>
-        notification.id === notificationId
-          ? { ...notification, read: true }
-          : notification
-      )
+      prev.map(n => (n.id === messageId ? { ...n, read: true } : n))
     );
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const getUserColor = (userId: string) => {
-    const colors = [
-      '#00A67E', // verde
-      '#E94560', // vermelho
-      '#4C6FFF', // azul
-      '#FFB800', // amarelo
-      '#9C27B0', // roxo
-      '#FF9800', // laranja
-    ];
-    
-    // Usa o ID do usuário para selecionar uma cor consistente
-    const index = parseInt(userId.replace(/[^0-9]/g, '')) % colors.length;
-    return colors[index];
-  };
-
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ 
-        p: 2, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        borderBottom: 1, 
-        borderColor: 'divider' 
-      }}>
+    <Paper
+      elevation={3}
+      sx={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column"
+      }}
+    >
+      <Box
+        sx={{
+          p: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: 1,
+          borderColor: "divider"
+        }}
+      >
         <Typography variant="h6">Chat</Typography>
-        <IconButton onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
+        {onClose && (
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        )}
       </Box>
 
-      <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
+      <Box sx={{ flexGrow: 1, overflow: "auto", p: 2 }}>
         <List>
-          {messages.map((msg) => (
+          {messages.map((msg, index) => (
             <ListItem
-              key={msg.id}
+              key={index}
               sx={{
-                flexDirection: msg.senderId === user?.id ? 'row-reverse' : 'row',
-                gap: 1,
-                mb: 1,
+                flexDirection: msg.senderId === user?.id ? "row-reverse" : "row",
+                alignItems: "flex-start",
+                mb: 2
               }}
             >
-              <Avatar 
-                src={mockUsers.find(u => u.id === msg.senderId)?.profilePicture}
-                sx={{ 
-                  width: 40, 
-                  height: 40,
-                  border: '2px solid',
-                  borderColor: getUserColor(msg.senderId),
-                  bgcolor: getUserColor(msg.senderId),
-                  '& img': {
-                    objectFit: 'cover',
-                    width: '100%',
-                    height: '100%',
-                  }
+              <ListItemAvatar>
+                <Avatar
+                  src={msg.senderId === user?.id ? user?.avatar : undefined}
+                  alt={msg.senderId === user?.id ? user?.name : "Other"}
+                />
+              </ListItemAvatar>
+              <ListItemText
+                primary={msg.content}
+                secondary={new Date(msg.timestamp).toLocaleString()}
+                sx={{
+                  textAlign: msg.senderId === user?.id ? "right" : "left",
+                  mx: 2
                 }}
-              >
-                {mockUsers.find(u => u.id === msg.senderId)?.name[0]}
-              </Avatar>
-              <Box sx={{ maxWidth: '70%' }}>
-                <Paper
-                  elevation={1}
-                  sx={{
-                    p: 2,
-                    bgcolor: msg.senderId === user?.id ? getUserColor(msg.senderId) : 'background.paper',
-                    color: msg.senderId === user?.id ? 'white' : 'text.primary',
-                    borderRadius: 2,
-                    borderLeft: msg.senderId !== user?.id ? `4px solid ${getUserColor(msg.senderId)}` : 'none',
-                    borderRight: msg.senderId === user?.id ? `4px solid ${getUserColor(msg.senderId)}` : 'none',
-                  }}
-                >
-                  <Typography>{msg.text}</Typography>
-                  {msg.type === 'image' ? (
-                    <img src={msg.content} alt={msg.text} style={{ maxWidth: '100%', borderRadius: 4 }} />
-                  ) : msg.type === 'video' ? (
-                    <video src={msg.content} controls style={{ maxWidth: '100%', borderRadius: 4 }} />
-                  ) : msg.type === 'audio' ? (
-                    <audio src={msg.content} controls />
-                  ) : null}
-                </Paper>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    mt: 0.5, 
-                    display: 'block',
-                    textAlign: msg.senderId === user?.id ? 'right' : 'left',
-                    color: 'text.secondary'
-                  }}
-                >
-                  {msg.timestamp}
-                </Typography>
-              </Box>
+              />
             </ListItem>
           ))}
-          <div ref={messagesEndRef} />
         </List>
+        <div ref={messageEndRef} />
       </Box>
 
-      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-        {isRecording ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2,
-              flex: 1,
-              bgcolor: 'error.main',
-              color: 'white',
-              p: 2,
-              borderRadius: 2,
-            }}>
-              <AudioVisualizer 
-                isRecording={isRecording}
-                onVisualizerReady={handleVisualizerReady}
-              />
-              <Typography variant="body2">
-                {formatTime(recordingTime)}
-              </Typography>
-            </Box>
-            <IconButton color="error" onClick={stopRecording}>
-              <StopIcon />
-            </IconButton>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Digite sua mensagem"
-              value={message}
-              onChange={handleTextChange}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              ref={textFieldRef}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => fileInputRef.current?.click()}>
-                      <AttachFileIcon />
-                    </IconButton>
-                    <IconButton>
-                      <ImageIcon />
-                    </IconButton>
-                    <IconButton onClick={startRecording}>
-                      <MicIcon />
-                    </IconButton>
-                    <IconButton>
-                      <VideoCallIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
+      <Box sx={{ p: 2, borderTop: 1, borderColor: "divider" }}>
+        {isRecording && (
+          <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+            <AudioVisualizer
+              onVisualizerReady={handleVisualizerReady}
             />
-            <Button
-              variant="contained"
-              onClick={handleSendMessage}
-              sx={{ minWidth: 'auto', px: 3 }}
-            >
-              <SendIcon />
-            </Button>
           </Box>
         )}
-        <input
-          type="file"
-          hidden
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept="image/*,audio/*,video/*"
-        />
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <TextField
+            fullWidth
+            multiline
+            maxRows={4}
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Digite sua mensagem..."
+            inputRef={inputRef}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={handleAttachmentClick}>
+                    <AttachFileIcon />
+                  </IconButton>
+                  <IconButton onClick={() => {}}>
+                    <ImageIcon />
+                  </IconButton>
+                  <IconButton onClick={handleMentionClick}>
+                    @
+                  </IconButton>
+                  <IconButton onClick={() => {}}>
+                    <VideoCallIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSendMessage}
+            endIcon={<SendIcon />}
+          >
+            Enviar
+          </Button>
+          <IconButton
+            color={isRecording ? "secondary" : "default"}
+            onClick={handleRecordAudio}
+          >
+            {isRecording ? <StopIcon /> : <MicIcon />}
+          </IconButton>
+        </Box>
       </Box>
 
-      {/* Popover de menções */}
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleAttachmentClose}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+      >
+        <List>
+          {[
+            { id: "1", name: "Usuário 1" },
+            { id: "2", name: "Usuário 2" },
+            { id: "3", name: "Usuário 3" },
+          ]
+            .filter(u =>
+              u.name.toLowerCase().includes(newMessage.toLowerCase())
+            )
+            .map(user => (
+              <ListItemButton
+                key={user.id}
+                onClick={() => handleMentionSelect(user)}
+                sx={{ py: 1 }}
+              >
+                <ListItemAvatar>
+                  <Avatar>{user.name[0]}</Avatar>
+                </ListItemAvatar>
+                <ListItemText primary={user.name} />
+              </ListItemButton>
+            ))}
+        </List>
+      </Popover>
+
       <Popover
         open={Boolean(mentionAnchorEl)}
         anchorEl={mentionAnchorEl}
-        onClose={() => setMentionAnchorEl(null)}
+        onClose={handleMentionClose}
         anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
         }}
       >
-        <List sx={{ width: 250 }}>
-          {mockUsers
-            .filter(u => 
-              u.username.toLowerCase().includes(mentionSearch.toLowerCase()) ||
-              u.name.toLowerCase().includes(mentionSearch.toLowerCase())
+        <List>
+          {[
+            { id: "1", name: "Usuário 1" },
+            { id: "2", name: "Usuário 2" },
+            { id: "3", name: "Usuário 3" },
+          ]
+            .filter(u =>
+              u.name.toLowerCase().includes(newMessage.toLowerCase())
             )
             .map(user => (
-              <ListItemButton 
+              <ListItemButton
                 key={user.id}
                 onClick={() => handleMentionSelect(user)}
+                sx={{ py: 1 }}
               >
                 <ListItemAvatar>
-                  <Avatar 
-                    src={user.profilePicture || ''}
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      border: '1px solid',
-                      borderColor: 'primary.light',
-                      bgcolor: 'primary.main',
-                    }}
-                  >
-                    {user.name[0]}
-                  </Avatar>
+                  <Avatar>{user.name[0]}</Avatar>
                 </ListItemAvatar>
-                <ListItemText 
-                  primary={user.name}
-                  secondary={`@${user.username}`}
-                  primaryTypographyProps={{
-                    variant: 'subtitle2',
-                    fontWeight: 600,
-                  }}
-                />
+                <ListItemText primary={user.name} />
               </ListItemButton>
-            ))
-          }
+            ))}
         </List>
       </Popover>
-
-      {/* Popover de notificações */}
-      <Popover
-        open={Boolean(notificationAnchorEl)}
-        anchorEl={notificationAnchorEl}
-        onClose={handleNotificationClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-      >
-        <List sx={{ width: 300 }}>
-          {notifications.length === 0 ? (
-            <ListItemText sx={{ p: 2 }} primary="Nenhuma notificação" />
-          ) : (
-            notifications.map(notification => (
-              <ListItemButton 
-                key={notification.id}
-                onClick={() => handleMarkAsRead(notification.id)}
-                sx={{ 
-                  bgcolor: notification.read ? 'transparent' : 'action.hover'
-                }}
-              >
-                <ListItemText 
-                  primary={notification.message}
-                  secondary={notification.timestamp}
-                />
-              </ListItemButton>
-            ))
-          )}
-        </List>
-      </Popover>
-    </Box>
+    </Paper>
   );
 };
 
