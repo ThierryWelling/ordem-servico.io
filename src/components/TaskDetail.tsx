@@ -1,93 +1,94 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   List,
   ListItem,
   ListItemText,
   Checkbox,
-  IconButton,
+  Paper,
 } from '@mui/material';
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
-import { useDispatch } from 'react-redux';
 import { Task, ChecklistItem } from '../types';
-import { updateTask } from '../store/slices/taskSlice';
+import { taskService } from '../services';
 
 interface TaskDetailProps {
-  task: Task;
-  onEdit: () => void;
-  onDelete: () => void;
+  taskId: string;
+  onUpdate: () => void;
 }
 
-const TaskDetail: React.FC<TaskDetailProps> = ({ task, onEdit, onDelete }) => {
-  const dispatch = useDispatch();
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist || []);
+const TaskDetail: React.FC<TaskDetailProps> = ({ taskId, onUpdate }) => {
+  const [task, setTask] = useState<Task | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleChecklistItemToggle = (index: number) => {
-    const newChecklist = [...checklist];
-    newChecklist[index].completed = !newChecklist[index].completed;
-    setChecklist(newChecklist);
+  useEffect(() => {
+    const loadTask = async () => {
+      try {
+        setLoading(true);
+        const data = await taskService.getTask(taskId);
+        setTask(data);
+      } catch (error) {
+        console.error('Erro ao carregar tarefa:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    dispatch(updateTask({
-      taskId: task.id,
-      checklist: newChecklist,
-    }));
+    loadTask();
+  }, [taskId]);
+
+  const handleChecklistItemToggle = async (item: ChecklistItem) => {
+    if (!task) return;
+
+    try {
+      const updatedChecklist = task.checklist.map(checkItem =>
+        checkItem.id === item.id
+          ? { ...checkItem, completed: !checkItem.completed }
+          : checkItem
+      );
+
+      const updatedTask = { ...task, checklist: updatedChecklist };
+      await taskService.updateTask(task.id, updatedTask);
+      setTask(updatedTask);
+      onUpdate();
+    } catch (error) {
+      console.error('Erro ao atualizar item da checklist:', error);
+    }
   };
+
+  if (loading) {
+    return <Typography>Carregando...</Typography>;
+  }
+
+  if (!task) {
+    return <Typography>Tarefa não encontrada</Typography>;
+  }
 
   return (
     <Paper sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5" component="h2">
-          {task.title}
-        </Typography>
-        <Box>
-          <IconButton onClick={onEdit} color="primary">
-            <EditIcon />
-          </IconButton>
-          <IconButton onClick={onDelete} color="error">
-            <DeleteIcon />
-          </IconButton>
-        </Box>
-      </Box>
+      <Typography variant="h5" gutterBottom>
+        {task.title}
+      </Typography>
 
-      <Typography variant="body1" color="text.secondary" paragraph>
+      <Typography variant="body1" paragraph>
         {task.description}
       </Typography>
 
-      <Box mt={3}>
+      <Box sx={{ mt: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Lista de Verificação
+          Checklist
         </Typography>
         <List>
-          {checklist.map((item, index) => (
-            <ListItem key={item.id} dense>
-              <Checkbox
-                edge="start"
-                checked={item.completed}
-                onChange={() => handleChecklistItemToggle(index)}
-              />
+          {task.checklist.map((item) => (
+            <ListItem
+              key={item.id}
+              button
+              onClick={() => handleChecklistItemToggle(item)}
+            >
+              <Checkbox checked={item.completed} />
               <ListItemText primary={item.text} />
             </ListItem>
           ))}
         </List>
-      </Box>
-
-      <Box mt={3}>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          Status: {task.status}
-        </Typography>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          Prioridade: {task.priority}
-        </Typography>
-        {task.assigned_to_name && (
-          <Typography variant="subtitle2" color="text.secondary">
-            Atribuído para: {task.assigned_to_name}
-          </Typography>
-        )}
       </Box>
     </Paper>
   );

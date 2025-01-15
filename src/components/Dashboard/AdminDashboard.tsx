@@ -1,62 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Grid,
-  Paper,
-  Typography,
-  CircularProgress
-} from '@mui/material';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
-import { ServiceOrder } from '../../types';
-import api from '../../services/api';
-
-interface TaskDistributionData {
-  status: string;
-  count: number;
-}
+import { Box, Typography, Grid } from '@mui/material';
+import { ServiceOrder, User } from '../../types';
+import { serviceOrderService, userService } from '../../services';
 
 const AdminDashboard: React.FC = () => {
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [taskDistributionData, setTaskDistributionData] = useState<TaskDistributionData[]>([]);
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/service-orders');
-        const tasksData = response.data;
-        
-        // Processar dados para o gráfico de distribuição
-        const distribution = tasksData.reduce((acc: Record<string, number>, task: ServiceOrder) => {
-          const status = task.status;
-          acc[status] = (acc[status] || 0) + 1;
-          return acc;
-        }, {});
-
-        const chartData = Object.entries(distribution).map(([status, count]) => ({
-          status,
-          count: count as number
-        }));
-
-        setTaskDistributionData(chartData);
+        const [ordersData, usersData] = await Promise.all([
+          serviceOrderService.getServiceOrders(),
+          userService.getUsers()
+        ]);
+        setServiceOrders(ordersData);
+        setUsers(usersData);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        setError('Erro ao carregar dados do dashboard');
       } finally {
         setLoading(false);
       }
@@ -65,80 +28,56 @@ const AdminDashboard: React.FC = () => {
     loadData();
   }, []);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const getStatistics = () => {
+    const totalTasks = serviceOrders.length;
+    const completedTasks = serviceOrders.filter(order => order.status === 'completed').length;
+    const inProgressTasks = serviceOrders.filter(order => order.status === 'in_progress').length;
+    const pendingTasks = serviceOrders.filter(order => order.status === 'pending').length;
 
-  if (error) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
+    return {
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      pendingTasks
+    };
+  };
+
+  const stats = getStatistics();
+
+  if (loading) {
+    return <Typography>Carregando...</Typography>;
   }
 
   return (
-    <Box p={3}>
+    <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Dashboard Administrativo
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Distribuição de Tarefas
-            </Typography>
-            <Box sx={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={taskDistributionData}
-                    dataKey="count"
-                    nameKey="status"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    label={({ status, count }) => `${status}: ${count}`}
-                  >
-                    {taskDistributionData.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </Box>
-          </Paper>
+        <Grid item xs={12} md={3}>
+          <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+            <Typography variant="h6">Total de Tarefas</Typography>
+            <Typography variant="h4">{stats.totalTasks}</Typography>
+          </Box>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Distribuição por Status
-            </Typography>
-            <Box sx={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={taskDistributionData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="status" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="count" fill="#8884d8">
-                    {taskDistributionData.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </Box>
-          </Paper>
+        <Grid item xs={12} md={3}>
+          <Box sx={{ p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+            <Typography variant="h6">Concluídas</Typography>
+            <Typography variant="h4">{stats.completedTasks}</Typography>
+          </Box>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
+            <Typography variant="h6">Em Progresso</Typography>
+            <Typography variant="h4">{stats.inProgressTasks}</Typography>
+          </Box>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Box sx={{ p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+            <Typography variant="h6">Pendentes</Typography>
+            <Typography variant="h4">{stats.pendingTasks}</Typography>
+          </Box>
         </Grid>
       </Grid>
     </Box>

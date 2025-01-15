@@ -4,23 +4,21 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
+  TextField,
+  Box,
   List,
   ListItem,
   ListItemText,
   IconButton,
-  Box,
 } from '@mui/material';
-import {
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
-import { ServiceOrder, ChecklistItem } from '../types';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { Task, ChecklistItem } from '../types';
 
 interface CreateTaskDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (task: Partial<ServiceOrder>) => void;
+  onSave: (task: Partial<Task>) => void;
 }
 
 const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
@@ -35,14 +33,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleAddChecklistItem = () => {
     if (newChecklistItem.trim()) {
+      const now = new Date().toISOString();
       const newItem: ChecklistItem = {
         id: Date.now().toString(),
         service_order_id: '',
         description: newChecklistItem,
         text: newChecklistItem,
         completed: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: now,
+        updated_at: now,
       };
       setChecklist([...checklist, newItem]);
       setNewChecklistItem('');
@@ -56,7 +55,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   };
 
   const handleSave = () => {
-    const newTask: Partial<ServiceOrder> = {
+    const newTask: Partial<Task> = {
       title,
       description,
       checklist,

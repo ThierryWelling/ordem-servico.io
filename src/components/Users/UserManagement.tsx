@@ -1,38 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
+  Container,
   Typography,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Button,
-  Avatar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  IconButton,
-  Chip,
-  Snackbar,
-  Alert,
-  CircularProgress,
+  Box,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-} from '@mui/icons-material';
-import { User, ServiceOrder } from '../../types';
+import { User } from '../../types';
 import api from '../../services/api';
 
 interface NewUserForm {
