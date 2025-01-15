@@ -4,128 +4,140 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
-  Box,
-  Typography,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
   IconButton,
-  CircularProgress
+  Box,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material';
-import api from '../services/api';
+import {
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
+import { ServiceOrder, ChecklistItem } from '../types';
 
 interface CreateTaskDialogProps {
   open: boolean;
   onClose: () => void;
-  onTaskCreated: () => void;
+  onSave: (task: Partial<ServiceOrder>) => void;
 }
 
 const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   open,
   onClose,
-  onTaskCreated
+  onSave,
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      setError('Por favor, preencha todos os campos');
-      return;
+  const handleAddChecklistItem = () => {
+    if (newChecklistItem.trim()) {
+      const newItem: ChecklistItem = {
+        id: Date.now().toString(),
+        service_order_id: '',
+        description: newChecklistItem,
+        text: newChecklistItem,
+        completed: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setChecklist([...checklist, newItem]);
+      setNewChecklistItem('');
     }
+  };
 
-    try {
-      setLoading(true);
-      setError('');
+  const handleRemoveChecklistItem = (index: number) => {
+    const newChecklist = [...checklist];
+    newChecklist.splice(index, 1);
+    setChecklist(newChecklist);
+  };
 
-      await api.post('/service-orders', {
-        title: title.trim(),
-        description: description.trim(),
-        status: 'pending'
-      });
-
-      setTitle('');
-      setDescription('');
-      onTaskCreated();
-      onClose();
-    } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
-      setError('Erro ao criar tarefa. Por favor, tente novamente.');
-    } finally {
-      setLoading(false);
-    }
+  const handleSave = () => {
+    const newTask: Partial<ServiceOrder> = {
+      title,
+      description,
+      checklist,
+      status: 'pending',
+      priority: 'medium',
+    };
+    onSave(newTask);
+    handleClose();
   };
 
   const handleClose = () => {
     setTitle('');
     setDescription('');
-    setError('');
+    setNewChecklistItem('');
+    setChecklist([]);
     onClose();
   };
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Nova Tarefa</Typography>
-          <IconButton onClick={handleClose} size="small">
-            <CloseIcon />
-          </IconButton>
+      <DialogTitle>Nova Tarefa</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+          <TextField
+            label="Título"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Descrição"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            multiline
+            rows={4}
+            fullWidth
+          />
+          <Box>
+            <TextField
+              label="Item da Lista"
+              value={newChecklistItem}
+              onChange={(e) => setNewChecklistItem(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddChecklistItem();
+                }
+              }}
+              fullWidth
+            />
+          </Box>
+          <List>
+            {checklist.map((item, index) => (
+              <ListItem
+                key={item.id}
+                secondaryAction={
+                  <IconButton
+                    edge="end"
+                    aria-label="delete"
+                    onClick={() => handleRemoveChecklistItem(index)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                }
+              >
+                <ListItemText primary={item.text} />
+              </ListItem>
+            ))}
+          </List>
         </Box>
-      </DialogTitle>
-
-      <form onSubmit={handleSubmit}>
-        <DialogContent>
-          {loading ? (
-            <Box display="flex" justifyContent="center" p={3}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <>
-              <TextField
-                fullWidth
-                label="Título"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                margin="normal"
-                required
-                error={!!error && !title.trim()}
-              />
-              <TextField
-                fullWidth
-                label="Descrição"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                margin="normal"
-                required
-                multiline
-                rows={4}
-                error={!!error && !description.trim()}
-              />
-              {error && (
-                <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-                  {error}
-                </Typography>
-              )}
-            </>
-          )}
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={handleClose}>Cancelar</Button>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            disabled={loading || !title.trim() || !description.trim()}
-          >
-            Criar
-          </Button>
-        </DialogActions>
-      </form>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancelar</Button>
+        <Button
+          onClick={handleSave}
+          variant="contained"
+          disabled={!title.trim() || !description.trim()}
+        >
+          Salvar
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 };

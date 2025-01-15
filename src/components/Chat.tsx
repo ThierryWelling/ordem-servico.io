@@ -16,8 +16,7 @@ import {
   Mic as MicIcon,
   Stop as StopIcon,
 } from '@mui/icons-material';
-import { Message } from '../types';
-import { User } from '../types';
+import { Message, User } from '../types';
 import AudioVisualizer from './AudioVisualizer';
 
 interface ChatProps {
@@ -30,7 +29,6 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, user }) => {
   const [newMessage, setNewMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,84 +52,37 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, user }) => {
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      let audioChunks: BlobPart[] = [];
-
-      recorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
-      recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          const base64Audio = reader.result as string;
-          onSendMessage(base64Audio, 'audio');
-        };
-        audioChunks = [];
-      };
-
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-    }
-  };
-
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Paper sx={{ flex: 1, overflow: 'auto', p: 2 }}>
         <List>
-          {messages.map((msg, index) => (
+          {messages.map((message) => (
             <ListItem
-              key={index}
+              key={message.id}
               sx={{
-                flexDirection: msg.senderId === user?.id ? 'row-reverse' : 'row',
+                flexDirection: message.sender_id === user?.id ? 'row-reverse' : 'row',
                 gap: 1,
               }}
             >
               <ListItemAvatar>
-                <Avatar src={msg.senderId === user?.id ? user?.avatar : undefined} />
+                <Avatar>{user?.name[0]}</Avatar>
               </ListItemAvatar>
-              <ListItemText
-                primary={
-                  <Box
-                    sx={{
-                      bgcolor: msg.senderId === user?.id ? 'primary.main' : 'grey.200',
-                      color: msg.senderId === user?.id ? 'white' : 'text.primary',
-                      p: 1,
-                      borderRadius: 1,
-                      maxWidth: '70%',
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {msg.type === 'text' ? (
-                      msg.content
-                    ) : (
-                      <audio controls src={msg.content} />
-                    )}
-                  </Box>
-                }
-                sx={{ margin: 0 }}
-              />
+              <Paper
+                sx={{
+                  p: 1,
+                  bgcolor: message.sender_id === user?.id ? 'primary.main' : 'grey.100',
+                  color: message.sender_id === user?.id ? 'white' : 'inherit',
+                  maxWidth: '70%',
+                }}
+              >
+                <Typography>{message.content}</Typography>
+              </Paper>
             </ListItem>
           ))}
           <div ref={messagesEndRef} />
         </List>
       </Paper>
+
       <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <TextField
@@ -148,19 +99,12 @@ const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, user }) => {
           </IconButton>
           <IconButton
             color={isRecording ? 'error' : 'primary'}
-            onClick={isRecording ? stopRecording : startRecording}
+            onClick={() => setIsRecording(!isRecording)}
           >
             {isRecording ? <StopIcon /> : <MicIcon />}
           </IconButton>
         </Box>
-        {isRecording && (
-          <Box sx={{ mt: 1 }}>
-            <Typography variant="caption" color="error">
-              Gravando...
-            </Typography>
-            <AudioVisualizer onVisualizerReady={() => {}} />
-          </Box>
-        )}
+        {isRecording && <AudioVisualizer onVisualizerReady={() => {}} />}
       </Box>
     </Box>
   );

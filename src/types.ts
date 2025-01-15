@@ -5,10 +5,12 @@ export interface User {
     role: 'admin' | 'collaborator' | 'user';
     sequence?: number;
     username?: string;
+    password?: string;
     profilePicture?: string;
     companyName?: string;
     companyLogo?: string;
     avatar?: string;
+    tasks?: ServiceOrder[];
     created_at: string;
     updated_at: string;
 }
@@ -24,8 +26,10 @@ export interface ServiceOrder {
     assigned_to?: string;
     assigned_to_name?: string;
     checklist: ChecklistItem[];
+    activities?: Activity[];
     created_at: string;
     updated_at: string;
+    completed_at?: string;
 }
 
 export interface ChecklistItem {
