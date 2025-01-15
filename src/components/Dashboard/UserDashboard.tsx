@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -18,52 +18,25 @@ interface UserDashboardProps {
   isAdmin?: boolean;
 }
 
-const UserDashboard: React.FC<UserDashboardProps> = ({ userId }) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<ServiceOrder[]>([]);
+const UserDashboard: React.FC<UserDashboardProps> = ({ userId, isAdmin }) => {
+  const [serviceOrders, setServiceOrders] = React.useState<ServiceOrder[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadServiceOrders = async () => {
       try {
         setLoading(true);
-        const tasksData = await serviceOrderService.getServiceOrders();
-        const userTasks = tasksData.filter(task => task.assigned_to === userId);
-        setTasks(userTasks);
+        const orders = await serviceOrderService.getUserServiceOrders(userId);
+        setServiceOrders(orders);
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        setError('Erro ao carregar dados do dashboard');
+        console.error('Erro ao carregar ordens de serviço:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    loadServiceOrders();
   }, [userId]);
-
-  const getStatusColor = (status: string): 'success' | 'error' | 'warning' => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in_progress':
-        return 'warning';
-      default:
-        return 'error';
-    }
-  };
-
-  const getStatusText = (status: string): string => {
-    switch (status) {
-      case 'completed':
-        return 'Concluída';
-      case 'in_progress':
-        return 'Em Progresso';
-      case 'pending':
-        return 'Pendente';
-      default:
-        return 'Desconhecido';
-    }
-  };
 
   if (loading) {
     return (
@@ -73,50 +46,76 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userId }) => {
     );
   }
 
-  if (error) {
-    return (
-      <Box>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
+  const pendingOrders = serviceOrders.filter(order => order.status === 'pending');
+  const inProgressOrders = serviceOrders.filter(order => order.status === 'in_progress');
+  const completedOrders = serviceOrders.filter(order => order.status === 'completed');
 
   return (
     <Box>
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              Minhas Tarefas
+              Pendentes
             </Typography>
             <List>
-              {tasks.map((task) => (
-                <ListItem key={task.id} divider>
+              {pendingOrders.map(order => (
+                <ListItem key={order.id}>
                   <ListItemText
-                    primary={task.title}
-                    secondary={
-                      <>
-                        {task.description}
-                        <Box mt={1}>
-                          <Chip
-                            label={getStatusText(task.status)}
-                            color={getStatusColor(task.status)}
-                            size="small"
-                          />
-                        </Box>
-                      </>
-                    }
+                    primary={order.title}
+                    secondary={order.description}
+                  />
+                  <Chip
+                    label={order.priority}
+                    color={order.priority === 'high' ? 'error' : order.priority === 'medium' ? 'warning' : 'info'}
+                    size="small"
                   />
                 </ListItem>
               ))}
-              {tasks.length === 0 && (
-                <ListItem>
+            </List>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Em Andamento
+            </Typography>
+            <List>
+              {inProgressOrders.map(order => (
+                <ListItem key={order.id}>
                   <ListItemText
-                    primary="Nenhuma tarefa encontrada"
-                    secondary="Você não possui tarefas atribuídas no momento"
+                    primary={order.title}
+                    secondary={order.description}
+                  />
+                  <Chip
+                    label={order.priority}
+                    color={order.priority === 'high' ? 'error' : order.priority === 'medium' ? 'warning' : 'info'}
+                    size="small"
                   />
                 </ListItem>
-              )}
+              ))}
+            </List>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Concluídas
+            </Typography>
+            <List>
+              {completedOrders.map(order => (
+                <ListItem key={order.id}>
+                  <ListItemText
+                    primary={order.title}
+                    secondary={order.description}
+                  />
+                  <Chip
+                    label="Concluída"
+                    color="success"
+                    size="small"
+                  />
+                </ListItem>
+              ))}
             </List>
           </Paper>
         </Grid>
