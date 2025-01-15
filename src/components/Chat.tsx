@@ -3,7 +3,6 @@ import {
   Box,
   List,
   ListItem,
-  ListItemText,
   ListItemAvatar,
   Avatar,
   TextField,

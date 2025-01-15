@@ -431,7 +431,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
       <CreateTaskDialog
         open={createTaskDialogOpen}
         onClose={() => setCreateTaskDialogOpen(false)}
-        onTaskCreated={handleTaskSaved}
+        onSave={handleTaskSaved}
       />
 
       <UserSequenceDialog

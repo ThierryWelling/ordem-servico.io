@@ -15,10 +15,9 @@ import { serviceOrderService } from '../../services';
 
 interface UserDashboardProps {
   userId: string;
-  isAdmin?: boolean;
 }
 
-const UserDashboard: React.FC<UserDashboardProps> = ({ userId, isAdmin }) => {
+const UserDashboard: React.FC<UserDashboardProps> = ({ userId }) => {
   const [serviceOrders, setServiceOrders] = React.useState<ServiceOrder[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -26,8 +25,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userId, isAdmin }) => {
     const loadServiceOrders = async () => {
       try {
         setLoading(true);
-        const orders = await serviceOrderService.getUserServiceOrders(userId);
-        setServiceOrders(orders);
+        const orders = await serviceOrderService.getServiceOrders();
+        const userOrders = orders.filter(order => order.assigned_to === userId);
+        setServiceOrders(userOrders);
       } catch (error) {
         console.error('Erro ao carregar ordens de serviço:', error);
       } finally {
