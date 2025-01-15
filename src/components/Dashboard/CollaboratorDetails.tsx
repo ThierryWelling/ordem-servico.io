@@ -69,42 +69,36 @@ const CollaboratorDetails: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      <Box py={4}>
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Grid container spacing={3} alignItems="center">
-            <Grid item>
-              <Avatar
-                sx={{
-                  width: 100,
-                  height: 100,
-                  fontSize: '2.5rem',
-                  bgcolor: 'primary.main'
-                }}
-              >
-                {user.name.charAt(0)}
-              </Avatar>
-            </Grid>
-            <Grid item xs>
-              <Typography variant="h4" gutterBottom>
-                {user.name}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {user.email}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Membro desde {new Date(user.created_at).toLocaleDateString()}
-              </Typography>
-            </Grid>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item>
+            <Avatar
+              src={user.profilePicture}
+              alt={user.name}
+              sx={{ width: 100, height: 100 }}
+            >
+              {user.name[0]}
+            </Avatar>
           </Grid>
-        </Paper>
+          <Grid item xs>
+            <Typography variant="h4" gutterBottom>
+              {user.name}
+            </Typography>
+            <Typography color="textSecondary">
+              {user.email}
+            </Typography>
+            <Typography variant="subtitle1" sx={{ mt: 1 }}>
+              Função: {user.role === 'admin' ? 'Administrador' : 'Colaborador'}
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
 
-        <Divider sx={{ my: 4 }} />
-
+      <Box mt={4}>
         <Typography variant="h5" gutterBottom>
-          Desempenho e Atividades
+          Tarefas do Colaborador
         </Typography>
-
-        <UserDashboard userId={userId} isAdmin={true} />
+        <UserDashboard userId={userId} />
       </Box>
     </Container>
   );
