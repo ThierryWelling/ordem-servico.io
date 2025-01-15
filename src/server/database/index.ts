@@ -14,12 +14,12 @@ const pool = mysql.createPool({
 });
 
 export default {
-    query: async <T>(sql: string, params?: any[]): Promise<T[]> => {
+    query: async <T>(sql: string, params?: unknown[]): Promise<T[]> => {
         const [rows] = await pool.execute(sql, params);
         return rows as T[];
     },
     
-    queryOne: async <T>(sql: string, params?: any[]): Promise<T | null> => {
+    queryOne: async <T>(sql: string, params?: unknown[]): Promise<T | null> => {
         const [rows] = await pool.execute(sql, params);
         const results = rows as T[];
         return results.length > 0 ? results[0] : null;

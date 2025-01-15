@@ -68,7 +68,7 @@ export class ServiceOrderService {
 
       const response = await api.post<ServiceOrder>('/service-orders', serviceOrderData);
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao criar ordem de serviço:', error);
       throw error;
     }
@@ -106,8 +106,8 @@ export class ActivityService {
 }
 
 export class ChatService {
-  async getConversations(userId: string): Promise<any[]> {
-    const response = await api.get<any[]>(`/chat/conversations/${userId}`);
+  async getConversations(userId: string): Promise<ChatMessage[]> {
+    const response = await api.get<ChatMessage[]>(`/chat/conversations/${userId}`);
     return response.data;
   }
 

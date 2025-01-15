@@ -44,7 +44,7 @@ interface NewUserForm {
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [tasks, setTasks] = useState<ServiceOrder[]>([]);
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState<NewUserForm>({
@@ -62,20 +62,21 @@ const UserManagement: React.FC = () => {
   // Carrega os usuários e tarefas do banco de dados
   const loadData = async () => {
     try {
-      const [usersData, tasksData] = await Promise.all([
-        api.getUsers(),
-        api.getServiceOrders()
+      setLoading(true);
+      const [usersData, ordersData] = await Promise.all([
+        api.get('/users').then(response => response.data),
+        api.get('/service-orders').then(response => response.data)
       ]);
       setUsers(usersData);
-      setTasks(tasksData);
-      setLoading(false);
+      setServiceOrders(ordersData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       setSnackbar({
         open: true,
         message: 'Erro ao carregar dados',
-        severity: 'error',
+        severity: 'error'
       });
+    } finally {
       setLoading(false);
     }
   };
@@ -200,7 +201,7 @@ const UserManagement: React.FC = () => {
                 {users
                   .filter(user => user.role === 'collaborator')
                   .map((user) => {
-                    const userTasks = tasks.filter(task => task.assigned_to === user.id);
+                    const userTasks = serviceOrders.filter(task => task.assigned_to === user.id);
                     const inProgressTasks = userTasks.filter(task => task.status === 'in_progress');
                     const completedTasks = userTasks.filter(task => task.status === 'completed');
 
