@@ -14,7 +14,6 @@ import {
   Tab,
   Grid,
   IconButton,
-  Divider,
   Select,
   MenuItem,
   InputLabel,
@@ -33,7 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { settingsService } from '../../services/api';
+import api from '../../services/api';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -103,11 +102,13 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
     try {
       // Upload do logo se houver
       if (logo) {
-        await settingsService.uploadLogo(logo);
+        const formData = new FormData();
+        formData.append('logo', logo);
+        await api.post('/settings/logo', formData);
       }
 
       // Atualizar configurações
-      await settingsService.updateSettings({
+      const { data: settings } = await api.put('/settings', {
         company_name: companyName,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
@@ -115,9 +116,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
         border_radius: borderRadius,
         dark_mode: darkMode
       });
-
-      // Recarregar configurações
-      const settings = await settingsService.getSettings();
       
       // Atualizar tema
       if (settings.primary_color !== theme.palette.primary.main ||
@@ -129,7 +127,6 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
       onClose();
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
-      // Aqui você pode adicionar um feedback visual do erro
     }
   };
 

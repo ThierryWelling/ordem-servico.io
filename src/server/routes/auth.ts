@@ -1,18 +1,18 @@
 import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import { RowDataPacket } from 'mysql2';
 import pool from '../config/database';
 
 const router = express.Router();
 
 // Login
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', (async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
     console.log('Tentativa de login:', { email }); // Log para debug
 
     if (!email || !password) {
-        return res.status(400).json({ message: 'Email e senha são obrigatórios' });
+        res.status(400).json({ message: 'Email e senha são obrigatórios' });
+        return;
     }
 
     try {
@@ -25,7 +25,8 @@ router.post('/login', async (req: Request, res: Response) => {
         console.log('Usuário encontrado:', users.length > 0); // Log para debug
 
         if (users.length === 0) {
-            return res.status(401).json({ message: 'Credenciais inválidas' });
+            res.status(401).json({ message: 'Credenciais inválidas' });
+            return;
         }
 
         const user = users[0];
@@ -38,7 +39,8 @@ router.post('/login', async (req: Request, res: Response) => {
         console.log('Senha válida:', validPassword); // Log para debug
 
         if (!validPassword) {
-            return res.status(401).json({ message: 'Credenciais inválidas' });
+            res.status(401).json({ message: 'Credenciais inválidas' });
+            return;
         }
 
         console.log('Gerando token...');
@@ -72,15 +74,16 @@ router.post('/login', async (req: Request, res: Response) => {
             stack: error instanceof Error ? error.stack : undefined
         });
     }
-});
+}) as express.RequestHandler);
 
 // Verificar token
-router.get('/verify', async (req: Request, res: Response) => {
+router.get('/verify', (async (req: Request, res: Response): Promise<void> => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: 'Token não fornecido' });
+        res.status(401).json({ message: 'Token não fornecido' });
+        return;
     }
 
     try {
@@ -92,13 +95,14 @@ router.get('/verify', async (req: Request, res: Response) => {
         );
 
         if (users.length === 0) {
-            return res.status(401).json({ message: 'Usuário não encontrado' });
+            res.status(401).json({ message: 'Usuário não encontrado' });
+            return;
         }
 
         res.json({ user: users[0] });
     } catch (error) {
         res.status(403).json({ message: 'Token inválido' });
     }
-});
+}) as express.RequestHandler);
 
-export { router }; 
+export default router; 

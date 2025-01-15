@@ -1,12 +1,13 @@
 import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import pool from '../config/database';
-import { RowDataPacket } from 'mysql2';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
 // Buscar conversas de um usuário
-router.get('/conversations/:userId', async (req: Request, res: Response) => {
+router.get('/conversations/:userId', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
         const [conversations] = await pool.query<RowDataPacket[]>(`
             SELECT DISTINCT 
@@ -65,13 +66,13 @@ router.get('/conversations/:userId', async (req: Request, res: Response) => {
         console.error('Erro ao buscar conversas:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
-});
+}) as express.RequestHandler);
 
 // Buscar mensagens entre dois usuários
-router.get('/messages/:userId/:otherUserId', async (req: Request, res: Response) => {
+router.get('/messages/:userId/:otherUserId', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
         // Marcar mensagens como lidas
-        await pool.query(
+        await pool.query<ResultSetHeader>(
             'UPDATE chat_messages SET read_at = CURRENT_TIMESTAMP WHERE sender_id = ? AND receiver_id = ? AND read_at IS NULL',
             [req.params.otherUserId, req.params.userId]
         );
@@ -99,19 +100,20 @@ router.get('/messages/:userId/:otherUserId', async (req: Request, res: Response)
         console.error('Erro ao buscar mensagens:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
-});
+}) as express.RequestHandler);
 
 // Enviar mensagem
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     const { sender_id, receiver_id, content } = req.body;
 
     if (!sender_id || !receiver_id || !content) {
-        return res.status(400).json({ message: 'Campos obrigatórios não preenchidos' });
+        res.status(400).json({ message: 'Campos obrigatórios não preenchidos' });
+        return;
     }
 
     try {
         const id = uuidv4();
-        await pool.query(
+        await pool.query<ResultSetHeader>(
             'INSERT INTO chat_messages (id, sender_id, receiver_id, content) VALUES (?, ?, ?, ?)',
             [id, sender_id, receiver_id, content]
         );
@@ -132,12 +134,12 @@ router.post('/', async (req: Request, res: Response) => {
         console.error('Erro ao enviar mensagem:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
-});
+}) as express.RequestHandler);
 
 // Marcar mensagens como lidas
-router.put('/read/:senderId/:receiverId', async (req: Request, res: Response) => {
+router.put('/read/:senderId/:receiverId', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
-        await pool.query(
+        await pool.query<ResultSetHeader>(
             'UPDATE chat_messages SET read_at = CURRENT_TIMESTAMP WHERE sender_id = ? AND receiver_id = ? AND read_at IS NULL',
             [req.params.senderId, req.params.receiverId]
         );
@@ -147,6 +149,6 @@ router.put('/read/:senderId/:receiverId', async (req: Request, res: Response) =>
         console.error('Erro ao marcar mensagens como lidas:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
-});
+}) as express.RequestHandler);
 
-export { router }; 
+export default router; 

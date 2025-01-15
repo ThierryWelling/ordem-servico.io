@@ -1,6 +1,5 @@
 import api from './api';
-import { ServiceOrder, Activity, ChatMessage, Theme, SystemSettings } from '../types';
-import { User } from '../types/User';
+import { ServiceOrder, Activity, ChatMessage, Theme, SystemSettings, User } from '../types';
 
 export class AuthService {
   async login(email: string, password: string): Promise<{ user: User; token: string }> {
@@ -26,6 +25,11 @@ export class AuthService {
 
   async updateUser(id: string, userData: Partial<User>): Promise<User> {
     const response = await api.put<User>(`/users/${id}`, userData);
+    return response.data;
+  }
+
+  async updateUserSequences(users: User[]): Promise<User[]> {
+    const response = await api.put<User[]>('/users/sequences', users);
     return response.data;
   }
 }

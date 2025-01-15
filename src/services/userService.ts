@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { User } from '../types/User';
+import { User } from '../types';
 
-const baseURL = process.env.NODE_ENV === 'production' 
+const baseURL = process.env.NODE_ENV === 'production'
   ? 'https://agenciaalthaia.com.br/api'
   : 'http://localhost:3001/api';
 

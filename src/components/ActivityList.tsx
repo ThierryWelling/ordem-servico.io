@@ -38,7 +38,7 @@ const ActivityList: React.FC<ActivityListProps> = ({
 
   const handleStartEdit = (activity: Activity) => {
     setEditingActivityId(activity.id);
-    setEditingActivityText(activity.description);
+    setEditingActivityText(activity.description || '');
   };
 
   const handleCancelEdit = () => {

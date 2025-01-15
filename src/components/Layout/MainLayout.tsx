@@ -15,7 +15,6 @@ import {
   Avatar,
   Button,
   Tooltip,
-  Dialog,
   Menu,
   MenuItem,
   useMediaQuery,
@@ -63,7 +62,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { darkMode, toggleDarkMode, language, setLanguage } = useSettings();
   const { t } = useTranslation(language);
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const handleDrawerToggle = () => {
     if (isMobile) {
@@ -384,20 +382,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {children}
       </Box>
 
-      <Dialog
-        open={chatOpen}
-        onClose={() => setChatOpen(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            height: '80vh',
-            maxHeight: 'none',
-          },
-        }}
-      >
-        <Chat onClose={() => setChatOpen(false)} />
-      </Dialog>
+      {chatOpen && (
+        <Chat 
+          messages={[]} 
+          onSendMessage={() => {}} 
+          user={user} 
+        />
+      )}
 
       <SettingsDialog
         open={settingsOpen}

@@ -32,16 +32,14 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
 } from '@mui/icons-material';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
 import { User, ServiceOrder } from '../../types';
-import { serviceOrderService, authService } from '../../services/api';
+import api from '../../services/api';
 
 interface NewUserForm {
   name: string;
   email: string;
-  password: string;
-  role: 'admin' | 'collaborator';
+  role: 'admin' | 'collaborator' | 'user';
+  sequence?: number;
 }
 
 const UserManagement: React.FC = () => {
@@ -52,7 +50,6 @@ const UserManagement: React.FC = () => {
   const [newUser, setNewUser] = useState<NewUserForm>({
     name: '',
     email: '',
-    password: '',
     role: 'collaborator',
   });
   const [snackbar, setSnackbar] = useState({
@@ -66,8 +63,8 @@ const UserManagement: React.FC = () => {
   const loadData = async () => {
     try {
       const [usersData, tasksData] = await Promise.all([
-        authService.getUsers(),
-        serviceOrderService.getServiceOrders()
+        api.getUsers(),
+        api.getServiceOrders()
       ]);
       setUsers(usersData);
       setTasks(tasksData);
@@ -93,15 +90,14 @@ const UserManagement: React.FC = () => {
       setNewUser({
         name: user.name,
         email: user.email,
-        password: '', // Não carregamos a senha ao editar
         role: user.role,
+        sequence: user.sequence
       });
     } else {
       setEditingUser(null);
       setNewUser({
         name: '',
         email: '',
-        password: '',
         role: 'collaborator',
       });
     }
@@ -114,7 +110,6 @@ const UserManagement: React.FC = () => {
     setNewUser({
       name: '',
       email: '',
-      password: '',
       role: 'collaborator',
     });
   };
@@ -122,14 +117,24 @@ const UserManagement: React.FC = () => {
   const handleSaveUser = async () => {
     try {
       if (editingUser) {
-        await authService.updateUser(editingUser.id, newUser);
+        await api.put(`/users/${editingUser.id}`, {
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          sequence: newUser.sequence
+        });
         setSnackbar({
           open: true,
           message: 'Colaborador atualizado com sucesso',
           severity: 'success',
         });
       } else {
-        await authService.register(newUser);
+        await api.post('/users', {
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          sequence: newUser.sequence
+        });
         setSnackbar({
           open: true,
           message: 'Colaborador adicionado com sucesso',
@@ -243,68 +248,67 @@ const UserManagement: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Diálogo para Adicionar/Editar Usuário */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>
           {editingUser ? 'Editar Colaborador' : 'Novo Colaborador'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
             <TextField
               label="Nome"
-              fullWidth
               value={newUser.name}
               onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              fullWidth
             />
             <TextField
               label="Email"
-              fullWidth
-              type="email"
               value={newUser.email}
               onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              fullWidth
             />
-            {!editingUser && (
-              <TextField
-                label="Senha"
-                fullWidth
-                type="password"
-                value={newUser.password}
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              />
-            )}
             <FormControl fullWidth>
               <InputLabel>Função</InputLabel>
               <Select
                 value={newUser.role}
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'collaborator' | 'user' })}
                 label="Função"
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'collaborator' })}
               >
-                <MenuItem value="collaborator">Colaborador</MenuItem>
                 <MenuItem value="admin">Administrador</MenuItem>
+                <MenuItem value="collaborator">Colaborador</MenuItem>
+                <MenuItem value="user">Usuário</MenuItem>
               </Select>
             </FormControl>
+            <TextField
+              label="Sequência"
+              type="number"
+              value={newUser.sequence || ''}
+              onChange={(e) => setNewUser({ ...newUser, sequence: parseInt(e.target.value) || undefined })}
+              fullWidth
+            />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button 
-            onClick={handleSaveUser} 
+          <Button
+            onClick={handleSaveUser}
             variant="contained"
-            disabled={!newUser.name || !newUser.email || (!editingUser && !newUser.password)}
+            disabled={!newUser.name || !newUser.email}
           >
             Salvar
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar para feedback */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

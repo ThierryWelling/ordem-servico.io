@@ -19,6 +19,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { updateProfilePicture } from '../store/slices/authSlice';
 import { RootState } from '../store';
+import api from '../services/api';
 
 interface ProfilePictureUploadProps {
   open: boolean;
@@ -52,21 +53,49 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ open, onClo
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (previewUrl) {
-      dispatch(updateProfilePicture(previewUrl));
-      setSnackbar({
-        open: true,
-        message: 'Foto de perfil atualizada com sucesso!',
-        severity: 'success'
-      });
-      setTimeout(onClose, 1000);
+      try {
+        const formData = new FormData();
+        const file = fileInputRef.current?.files?.[0];
+        if (file) {
+          formData.append('profilePicture', file);
+          const { data } = await api.post('/users/profile-picture', formData);
+          dispatch(updateProfilePicture(data.profilePicture));
+          setSnackbar({
+            open: true,
+            message: 'Foto de perfil atualizada com sucesso!',
+            severity: 'success'
+          });
+          setTimeout(onClose, 1000);
+        }
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: 'Erro ao atualizar foto de perfil',
+          severity: 'error'
+        });
+      }
     }
   };
 
-  const handleRemove = () => {
-    setPreviewUrl(null);
-    dispatch(updateProfilePicture(''));
+  const handleRemove = async () => {
+    try {
+      await api.delete('/users/profile-picture');
+      setPreviewUrl(null);
+      dispatch(updateProfilePicture(''));
+      setSnackbar({
+        open: true,
+        message: 'Foto de perfil removida com sucesso!',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Erro ao remover foto de perfil',
+        severity: 'error'
+      });
+    }
   };
 
   const handleCloseSnackbar = () => {

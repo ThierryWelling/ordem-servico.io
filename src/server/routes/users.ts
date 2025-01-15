@@ -1,146 +1,69 @@
-import express from 'express';
-import { v4 as uuidv4 } from 'uuid';
-import pool from '../config/database';
-import { RowDataPacket } from 'mysql2';
+import express, { Request, Response } from 'express';
 import { authenticateToken } from '../middleware/auth';
+import usersService from '../services/usersService';
 
 const router = express.Router();
 
-// Buscar todos os usuários
-router.get('/', authenticateToken, async (req, res) => {
+// Lista todos os usuários
+router.get('/', authenticateToken, (async (_req: Request, res: Response): Promise<void> => {
     try {
-        const [users] = await pool.query<RowDataPacket[]>(
-            'SELECT id, name, email, role, sequence FROM users ORDER BY sequence ASC'
-        );
+        const users = await usersService.getAllUsers();
         res.json(users);
     } catch (error) {
-        console.error('Erro ao buscar usuários:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
+        res.status(500).json({ message: 'Erro ao buscar usuários' });
     }
-});
+}) as express.RequestHandler);
 
-// Buscar usuário por ID
-router.get('/:id', async (req, res) => {
+// Busca um usuário específico
+router.get('/:id', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
-        const [users] = await pool.query<RowDataPacket[]>('SELECT id, name, email, role FROM users WHERE id = ?', [req.params.id]);
-        
-        if (users.length === 0) {
-            return res.status(404).json({ message: 'Usuário não encontrado' });
+        const user = await usersService.getUserById(req.params.id);
+        if (!user) {
+            res.status(404).json({ message: 'Usuário não encontrado' });
+            return;
         }
-        
-        res.json(users[0]);
+        res.json(user);
     } catch (error) {
-        console.error('Erro ao buscar usuário:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
+        res.status(500).json({ message: 'Erro ao buscar usuário' });
     }
-});
+}) as express.RequestHandler);
 
-// Criar novo usuário
-router.post('/', async (req, res) => {
-    const { name, email, password, role } = req.body;
-    
-    if (!name || !email || !password || !role) {
-        return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
-    }
-
+// Cria um novo usuário
+router.post('/', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
-        const id = uuidv4();
-        await pool.query(
-            'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
-            [id, name, email, password, role]
-        );
-        
-        res.status(201).json({ id, name, email, role });
+        const user = await usersService.createUser(req.body);
+        res.status(201).json(user);
     } catch (error) {
-        console.error('Erro ao criar usuário:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
+        res.status(500).json({ message: 'Erro ao criar usuário' });
     }
-});
+}) as express.RequestHandler);
 
-// Atualizar usuário
-router.put('/:id', authenticateToken, async (req, res) => {
-    const { name, email, role, sequence } = req.body;
-    const { id } = req.params;
-
+// Atualiza um usuário
+router.put('/:id', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
-        // Verifica se o usuário existe
-        const [users] = await pool.query<RowDataPacket[]>(
-            'SELECT * FROM users WHERE id = ?',
-            [id]
-        );
-
-        if (users.length === 0) {
-            return res.status(404).json({ message: 'Usuário não encontrado' });
+        const user = await usersService.updateUser(req.params.id, req.body);
+        if (!user) {
+            res.status(404).json({ message: 'Usuário não encontrado' });
+            return;
         }
-
-        const connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        try {
-            // Atualiza o usuário
-            const updateFields = [];
-            const updateValues = [];
-
-            if (name) {
-                updateFields.push('name = ?');
-                updateValues.push(name);
-            }
-            if (email) {
-                updateFields.push('email = ?');
-                updateValues.push(email);
-            }
-            if (role) {
-                updateFields.push('role = ?');
-                updateValues.push(role);
-            }
-            if (sequence !== undefined) {
-                updateFields.push('sequence = ?');
-                updateValues.push(sequence);
-            }
-
-            if (updateFields.length > 0) {
-                const query = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
-                await connection.query(query, [...updateValues, id]);
-            }
-
-            await connection.commit();
-
-            // Buscar usuário atualizado
-            const [updatedUser] = await pool.query<RowDataPacket[]>(
-                'SELECT id, name, email, role, sequence FROM users WHERE id = ?',
-                [id]
-            );
-
-            res.json(updatedUser[0]);
-        } catch (error) {
-            await connection.rollback();
-            throw error;
-        } finally {
-            connection.release();
-        }
+        res.json(user);
     } catch (error) {
-        console.error('Erro ao atualizar usuário:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
+        res.status(500).json({ message: 'Erro ao atualizar usuário' });
     }
-});
+}) as express.RequestHandler);
 
-// Deletar usuário
-router.delete('/:id', async (req, res) => {
+// Exclui um usuário
+router.delete('/:id', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
-        const [result] = await pool.query<RowDataPacket[] & { affectedRows: number }>(
-            'DELETE FROM users WHERE id = ?',
-            [req.params.id]
-        );
-        
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Usuário não encontrado' });
+        const success = await usersService.deleteUser(req.params.id);
+        if (!success) {
+            res.status(404).json({ message: 'Usuário não encontrado' });
+            return;
         }
-        
         res.status(204).send();
     } catch (error) {
-        console.error('Erro ao deletar usuário:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
+        res.status(500).json({ message: 'Erro ao excluir usuário' });
     }
-});
+}) as express.RequestHandler);
 
-export { router }; 
+export default router; 

@@ -1,12 +1,13 @@
-import { Router } from 'express';
-import { router as authRouter } from './auth';
-import { router as usersRouter } from './users';
-import { router as serviceOrdersRouter } from './serviceOrders';
-import { router as activitiesRouter } from './activities';
-import { router as chatRouter } from './chat';
-import { router as checklistRouter } from './checklist';
+import express from 'express';
+import authRouter from './auth';
+import usersRouter from './users';
+import serviceOrdersRouter from './serviceOrders';
+import activitiesRouter from './activities';
+import chatRouter from './chat';
+import checklistRouter from './checklist';
+import settingsRouter from './settings';
 
-const router = Router();
+const router = express.Router();
 
 router.use('/auth', authRouter);
 router.use('/users', usersRouter);
@@ -14,5 +15,6 @@ router.use('/service-orders', serviceOrdersRouter);
 router.use('/activities', activitiesRouter);
 router.use('/chat', chatRouter);
 router.use('/checklist', checklistRouter);
+router.use('/settings', settingsRouter);
 
-export { router }; 
+export default router; 

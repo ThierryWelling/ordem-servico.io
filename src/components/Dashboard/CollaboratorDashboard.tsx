@@ -10,7 +10,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { ServiceOrder } from '../../types';
-import { serviceOrderService } from '../../services/api';
+import api from '../../services/api';
 
 const CollaboratorDashboard: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -23,8 +23,8 @@ const CollaboratorDashboard: React.FC = () => {
       if (!user) return;
 
       try {
-        const response = await serviceOrderService.getServiceOrdersByUser(user.id);
-        setTasks(response);
+        const response = await api.get(`/service-orders/user/${user.id}`);
+        setTasks(response.data);
       } catch (error) {
         console.error('Erro ao carregar tarefas:', error);
       } finally {

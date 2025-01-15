@@ -31,15 +31,15 @@ export interface ServiceOrder {
     id: string;
     title: string;
     description: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    status: 'pending' | 'in_progress' | 'completed';
     priority: 'low' | 'medium' | 'high';
+    assigned_to: string;
     created_by: string;
-    created_by_name?: string;
-    assigned_to?: string;
+    due_date: string;
+    completed_at?: string;
     created_at: string;
     updated_at: string;
-    completed_at?: string;
-    checklist: ChecklistItem[];
+    checklist?: ChecklistItem[];
 }
 
 export interface Activity {
@@ -118,4 +118,19 @@ export interface SystemSettings {
     company_logo_url?: string;
     active_theme_id: string;
     active_theme?: Theme;
+}
+
+export interface Message {
+    id: string;
+    senderId: string;
+    receiverId: string;
+    content: string;
+    timestamp: string;
+    type: 'text' | 'audio' | 'image' | 'video';
+    read: boolean;
+}
+
+export interface UserDashboardProps {
+    userId: string;
+    isAdmin?: boolean;
 } 

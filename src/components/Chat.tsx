@@ -1,230 +1,139 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
-  Paper,
-  Typography,
-  IconButton,
-  TextField,
   List,
   ListItem,
   ListItemText,
   ListItemAvatar,
   Avatar,
-  Button,
-  InputAdornment,
-  ListItemButton,
-  Popover
-} from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
-import MicIcon from "@mui/icons-material/Mic";
-import StopIcon from "@mui/icons-material/Stop";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
-import ImageIcon from "@mui/icons-material/Image";
-import VideoCallIcon from "@mui/icons-material/VideoCall";
-import CloseIcon from "@mui/icons-material/Close";
-import { useSelector } from "react-redux";
-import { RootState } from "../store";
-import AudioVisualizer from "./AudioVisualizer";
-
-interface Message {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  content: string;
-  timestamp: string;
-  type: 'text' | 'audio' | 'image' | 'video';
-  read: boolean;
-}
+  TextField,
+  IconButton,
+  Paper,
+  Typography,
+} from '@mui/material';
+import {
+  Send as SendIcon,
+  Mic as MicIcon,
+  Stop as StopIcon,
+} from '@mui/icons-material';
+import { Message } from '../types';
+import { User } from '../types';
+import AudioVisualizer from './AudioVisualizer';
 
 interface ChatProps {
-  selectedUserId?: string;
-  onClose?: () => void;
+  messages: Message[];
+  onSendMessage: (content: string, type: 'text' | 'audio') => void;
+  user: User | null;
 }
 
-const Chat: React.FC<ChatProps> = ({ selectedUserId, onClose }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
+const Chat: React.FC<ChatProps> = ({ messages, onSendMessage, user }) => {
+  const [newMessage, setNewMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
-  const { user } = useSelector((state: RootState) => state.auth);
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [mentionAnchorEl, setMentionAnchorEl] = useState<HTMLElement | null>(null);
-  const [cursorPosition, setCursorPosition] = useState<number>(0);
-  const [notifications, setNotifications] = useState<Message[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const messageEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [startAudioCapture, setStartAudioCapture] = useState<(() => Promise<MediaStream>) | null>(null);
-  const [stopAudioCapture, setStopAudioCapture] = useState<(() => void) | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
-    if (messageEndRef.current) {
-      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !user) return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      senderId: user.id,
-      receiverId: selectedUserId || "",
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-      type: "text",
-      read: false
-    };
-
-    setMessages(prev => [...prev, message]);
-    setNewMessage("");
+    if (newMessage.trim()) {
+      onSendMessage(newMessage, 'text');
+      setNewMessage('');
+    }
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSendMessage();
     }
   };
 
-  const handleRecordAudio = () => {
-    if (!isRecording && startAudioCapture) {
-      startAudioCapture()
-        .then(() => setIsRecording(true))
-        .catch(error => console.error("Erro ao iniciar gravação:", error));
-    } else if (isRecording && stopAudioCapture) {
-      stopAudioCapture();
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      let audioChunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64Audio = reader.result as string;
+          onSendMessage(base64Audio, 'audio');
+        };
+        audioChunks = [];
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
       setIsRecording(false);
     }
   };
 
-  const handleVisualizerReady = (
-    startFn: () => Promise<MediaStream>,
-    stopFn: () => void
-  ) => {
-    setStartAudioCapture(() => startFn);
-    setStopAudioCapture(() => stopFn);
-  };
-
-  const handleAttachmentClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleAttachmentClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleMentionClick = () => {
-    if (inputRef.current) {
-      const curPos = inputRef.current.selectionStart || 0;
-      setCursorPosition(curPos);
-      setMentionAnchorEl(inputRef.current);
-    }
-  };
-
-  const handleMentionClose = () => {
-    setMentionAnchorEl(null);
-  };
-
-  const handleMentionSelect = (selectedUser: { id: string; name: string }) => {
-    const beforeCursor = newMessage.slice(0, cursorPosition);
-    const afterCursor = newMessage.slice(cursorPosition);
-    setNewMessage(`${beforeCursor}@${selectedUser.name} ${afterCursor}`);
-    handleMentionClose();
-
-    // Foca o input e move o cursor para depois da menção
-    if (inputRef.current) {
-      inputRef.current.focus();
-      const newCursorPosition = cursorPosition + selectedUser.name.length + 2;
-      inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-    }
-  };
-
-  const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
-  };
-
-  const handleCloseNotifications = () => {
-    setShowNotifications(false);
-  };
-
-  const handleMarkAsRead = (messageId: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === messageId ? { ...n, read: true } : n))
-    );
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   return (
-    <Paper
-      elevation={3}
-      sx={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column"
-      }}
-    >
-      <Box
-        sx={{
-          p: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: 1,
-          borderColor: "divider"
-        }}
-      >
-        <Typography variant="h6">Chat</Typography>
-        {onClose && (
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        )}
-      </Box>
-
-      <Box sx={{ flexGrow: 1, overflow: "auto", p: 2 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Paper sx={{ flex: 1, overflow: 'auto', p: 2 }}>
         <List>
           {messages.map((msg, index) => (
             <ListItem
               key={index}
               sx={{
-                flexDirection: msg.senderId === user?.id ? "row-reverse" : "row",
-                alignItems: "flex-start",
-                mb: 2
+                flexDirection: msg.senderId === user?.id ? 'row-reverse' : 'row',
+                gap: 1,
               }}
             >
               <ListItemAvatar>
-                <Avatar
-                  src={msg.senderId === user?.id ? user?.avatar : undefined}
-                  alt={msg.senderId === user?.id ? user?.name : "Other"}
-                />
+                <Avatar src={msg.senderId === user?.id ? user?.avatar : undefined} />
               </ListItemAvatar>
               <ListItemText
-                primary={msg.content}
-                secondary={new Date(msg.timestamp).toLocaleString()}
-                sx={{
-                  textAlign: msg.senderId === user?.id ? "right" : "left",
-                  mx: 2
-                }}
+                primary={
+                  <Box
+                    sx={{
+                      bgcolor: msg.senderId === user?.id ? 'primary.main' : 'grey.200',
+                      color: msg.senderId === user?.id ? 'white' : 'text.primary',
+                      p: 1,
+                      borderRadius: 1,
+                      maxWidth: '70%',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {msg.type === 'text' ? (
+                      msg.content
+                    ) : (
+                      <audio controls src={msg.content} />
+                    )}
+                  </Box>
+                }
+                sx={{ margin: 0 }}
               />
             </ListItem>
           ))}
+          <div ref={messagesEndRef} />
         </List>
-        <div ref={messageEndRef} />
-      </Box>
-
-      <Box sx={{ p: 2, borderTop: 1, borderColor: "divider" }}>
-        {isRecording && (
-          <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
-            <AudioVisualizer
-              onVisualizerReady={handleVisualizerReady}
-            />
-          </Box>
-        )}
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      </Paper>
+      <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <TextField
             fullWidth
             multiline
@@ -233,117 +142,27 @@ const Chat: React.FC<ChatProps> = ({ selectedUserId, onClose }) => {
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Digite sua mensagem..."
-            inputRef={inputRef}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={handleAttachmentClick}>
-                    <AttachFileIcon />
-                  </IconButton>
-                  <IconButton onClick={() => {}}>
-                    <ImageIcon />
-                  </IconButton>
-                  <IconButton onClick={handleMentionClick}>
-                    @
-                  </IconButton>
-                  <IconButton onClick={() => {}}>
-                    <VideoCallIcon />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
           />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSendMessage}
-            endIcon={<SendIcon />}
-          >
-            Enviar
-          </Button>
+          <IconButton color="primary" onClick={handleSendMessage}>
+            <SendIcon />
+          </IconButton>
           <IconButton
-            color={isRecording ? "secondary" : "default"}
-            onClick={handleRecordAudio}
+            color={isRecording ? 'error' : 'primary'}
+            onClick={isRecording ? stopRecording : startRecording}
           >
             {isRecording ? <StopIcon /> : <MicIcon />}
           </IconButton>
         </Box>
+        {isRecording && (
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="caption" color="error">
+              Gravando...
+            </Typography>
+            <AudioVisualizer onVisualizerReady={() => {}} />
+          </Box>
+        )}
       </Box>
-
-      <Popover
-        open={Boolean(anchorEl)}
-        anchorEl={anchorEl}
-        onClose={handleAttachmentClose}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-      >
-        <List>
-          {[
-            { id: "1", name: "Usuário 1" },
-            { id: "2", name: "Usuário 2" },
-            { id: "3", name: "Usuário 3" },
-          ]
-            .filter(u =>
-              u.name.toLowerCase().includes(newMessage.toLowerCase())
-            )
-            .map(user => (
-              <ListItemButton
-                key={user.id}
-                onClick={() => handleMentionSelect(user)}
-                sx={{ py: 1 }}
-              >
-                <ListItemAvatar>
-                  <Avatar>{user.name[0]}</Avatar>
-                </ListItemAvatar>
-                <ListItemText primary={user.name} />
-              </ListItemButton>
-            ))}
-        </List>
-      </Popover>
-
-      <Popover
-        open={Boolean(mentionAnchorEl)}
-        anchorEl={mentionAnchorEl}
-        onClose={handleMentionClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "left",
-        }}
-      >
-        <List>
-          {[
-            { id: "1", name: "Usuário 1" },
-            { id: "2", name: "Usuário 2" },
-            { id: "3", name: "Usuário 3" },
-          ]
-            .filter(u =>
-              u.name.toLowerCase().includes(newMessage.toLowerCase())
-            )
-            .map(user => (
-              <ListItemButton
-                key={user.id}
-                onClick={() => handleMentionSelect(user)}
-                sx={{ py: 1 }}
-              >
-                <ListItemAvatar>
-                  <Avatar>{user.name[0]}</Avatar>
-                </ListItemAvatar>
-                <ListItemText primary={user.name} />
-              </ListItemButton>
-            ))}
-        </List>
-      </Popover>
-    </Paper>
+    </Box>
   );
 };
 

@@ -11,7 +11,6 @@ import {
     ListItemText,
     Checkbox,
     Button,
-    Divider,
     Box,
     Chip,
     LinearProgress,
@@ -23,14 +22,15 @@ import {
     ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import { RootState } from '../store';
-import { updateTaskChecklist, moveTaskToNextUser } from '../store/slices/taskSlice';
-import { serviceOrderService } from '../services/api';
+import { updateTaskChecklist } from '../store/slices/taskSlice';
+import api from '../services/api';
 import { ChecklistItem } from '../types';
 
-const TaskDetail: React.FC = () => {
+interface TaskDetailProps {}
+
+const TaskDetail: React.FC<TaskDetailProps> = () => {
     const dispatch = useDispatch();
     const { currentTask } = useSelector((state: RootState) => state.tasks);
-    const { user } = useSelector((state: RootState) => state.auth);
 
     if (!currentTask) {
         return (
@@ -49,33 +49,38 @@ const TaskDetail: React.FC = () => {
 
     const handleChecklistItemToggle = async (item: ChecklistItem) => {
         try {
-            await serviceOrderService.updateServiceOrder(currentTask.id, {
-                checklist: currentTask.checklist.map(i =>
-                    i.id === item.id ? { ...i, completed: !i.completed } : i
-                ),
+            const updatedChecklist: ChecklistItem[] = ((currentTask as any).checklist || []).map((i: ChecklistItem) => ({
+                ...i,
+                completed: i.id === item.id ? !i.completed : i.completed
+            }));
+
+            await api.patch(`/tasks/${currentTask.id}/checklist`, {
+                taskId: currentTask.id,
+                checklist: updatedChecklist
             });
+
             dispatch(updateTaskChecklist({
                 taskId: currentTask.id,
-                checklistItemId: item.id,
-                completed: !item.completed
+                checklist: updatedChecklist
             }));
         } catch (error) {
-            console.error('Erro ao atualizar item do checklist:', error);
+            console.error('Error updating checklist item:', error);
         }
     };
 
     const handleMoveToNextUser = async () => {
         try {
-            const nextUserSequence = (user?.sequence || 0) + 1;
             // Aqui você precisaria implementar a lógica para encontrar o próximo usuário
             // baseado na sequência. Por enquanto, vamos apenas simular com um ID fixo
             const nextUserId = 'user02';
             
-            await serviceOrderService.updateServiceOrder(currentTask.id, {
+            await api.patch(`/tasks/${currentTask.id}`, {
                 assigned_to: nextUserId,
                 status: 'in_progress'
             });
-            dispatch(moveTaskToNextUser({ taskId: currentTask.id, nextUserId }));
+
+            // Atualize o estado local ou redirecione conforme necessário
+            window.location.reload();
         } catch (error) {
             console.error('Erro ao mover tarefa para próximo usuário:', error);
         }
@@ -106,8 +111,10 @@ const TaskDetail: React.FC = () => {
         }
     };
 
-    const allItemsCompleted = currentTask.checklist.every(item => item.completed);
-    const progress = (currentTask.checklist.filter(item => item.completed).length / currentTask.checklist.length) * 100;
+    const checklist: ChecklistItem[] = (currentTask as any).checklist || [];
+    const allItemsCompleted = checklist.length > 0 && checklist.every((item: ChecklistItem) => item.completed);
+    const progress = checklist.length > 0 ? 
+        (checklist.filter((item: ChecklistItem) => item.completed).length / checklist.length) * 100 : 0;
 
     return (
         <Box>
@@ -150,7 +157,7 @@ const TaskDetail: React.FC = () => {
                                 Checklist
                             </Typography>
                             <List>
-                                {currentTask.checklist.map((item) => (
+                                {checklist.map((item: ChecklistItem) => (
                                     <ListItem 
                                         key={item.id} 
                                         dense 

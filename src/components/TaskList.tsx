@@ -2,18 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Card,
   CardContent,
-  Chip,
-  Grid,
   Avatar,
+  Chip,
   Tooltip,
   Snackbar,
   Alert,
   IconButton,
   CircularProgress,
-  Fab,
   Button,
   Dialog,
   DialogTitle,
@@ -30,16 +27,14 @@ import {
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { useNavigate } from 'react-router-dom';
 import { ServiceOrder, User } from '../types';
-import { serviceOrderService, authService } from '../services/api';
+import { serviceOrderService, authService } from '../services';
 import TaskEditDialog from './TaskEditDialog';
 import CreateTaskDialog from './CreateTaskDialog';
 import UserSequenceDialog from './UserSequenceDialog';
 
 interface TaskListProps {
   collaboratorId?: string;
-  isAdminView?: boolean;
 }
 
 const getStatusIcon = (status: string) => {
@@ -64,8 +59,7 @@ const getStatusColor = (status: string): 'success' | 'error' | 'warning' => {
   }
 };
 
-const TaskList: React.FC<TaskListProps> = ({ collaboratorId, isAdminView = false }) => {
-  const navigate = useNavigate();
+const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const [tasks, setTasks] = useState<ServiceOrder[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -89,18 +83,18 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId, isAdminView = false
     if (!user) return [];
     
     if (collaboratorId) {
-      return users.filter(u => u.id === collaboratorId);
+      const filteredUsers = users.filter((u: User) => u.id === collaboratorId);
+      return filteredUsers.length > 0 ? filteredUsers : [];
     }
     
     if (isAdmin) {
-      return users.filter(u => u.role === 'collaborator');
+      return users.filter((u: User) => u.role === 'collaborator');
     }
     
-    // Encontrar o usuário atual e o próximo na sequência
-    const currentUser = users.find(u => u.id === user.id);
-    if (!currentUser || !currentUser.sequence) return [currentUser];
+    const currentUser = users.find((u: User) => u.id === user.id);
+    if (!currentUser || !currentUser.sequence) return [currentUser].filter(Boolean);
     
-    const nextUser = users.find(u => u.sequence === currentUser.sequence + 1);
+    const nextUser = users.find((u: User) => u.sequence === (currentUser.sequence || 0) + 1);
     return nextUser ? [currentUser, nextUser] : [currentUser];
   };
 
@@ -122,7 +116,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId, isAdminView = false
     return targetUser.sequence === sourceUser.sequence + 1;
   };
 
-  const handleDrop = async (e: React.DragEvent, targetUserId: string) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetUserId: string) => {
     e.preventDefault();
     if (!draggedTask) return;
 
@@ -178,11 +172,11 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId, isAdminView = false
 
         // Se tiver collaboratorId, filtra apenas as tarefas desse colaborador
         const filteredTasks = collaboratorId 
-          ? tasksData.filter(task => task.assigned_to === collaboratorId)
+          ? tasksData.filter((task: ServiceOrder) => task.assigned_to === collaboratorId)
           : tasksData;
 
         setTasks(filteredTasks);
-        setUsers(usersData.sort((a, b) => (a.sequence || 0) - (b.sequence || 0)));
+        setUsers(usersData.sort((a: User, b: User) => ((a.sequence || 0) - (b.sequence || 0))));
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         setSnackbar({
@@ -220,11 +214,11 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId, isAdminView = false
     setDraggedTask(task);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 
-  const handleDeleteClick = (task: ServiceOrder, event: React.MouseEvent) => {
+  const handleDeleteClick = (task: ServiceOrder, event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     setTaskToDelete(task);
     setDeleteDialogOpen(true);
@@ -260,368 +254,203 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId, isAdminView = false
     setTaskToDelete(null);
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
-
   const handleEditTask = (task: ServiceOrder) => {
     setSelectedTask(task);
     setEditDialogOpen(true);
   };
 
   const handleCloseEditDialog = () => {
-    setSelectedTask(null);
     setEditDialogOpen(false);
+    setSelectedTask(null);
   };
 
   const handleTaskSaved = async () => {
     try {
-      const response = await serviceOrderService.getServiceOrders();
-      setTasks(response);
+      const updatedTasks = await serviceOrderService.getServiceOrders();
+      setTasks(updatedTasks);
       setSnackbar({
         open: true,
         message: 'Tarefa atualizada com sucesso',
         severity: 'success'
       });
     } catch (error) {
-      console.error('Erro ao recarregar tarefas:', error);
+      console.error('Erro ao atualizar lista de tarefas:', error);
       setSnackbar({
         open: true,
-        message: 'Erro ao atualizar tarefa',
+        message: 'Erro ao atualizar lista de tarefas',
         severity: 'error'
       });
     }
   };
 
+  const handleUpdateSequences = async (updatedUsers: User[]) => {
+    try {
+      const result = await authService.updateUserSequences(updatedUsers);
+      if (result) {
+        setSnackbar({
+          open: true,
+          message: 'Sequência atualizada com sucesso',
+          severity: 'success'
+        });
+        setUsers(result);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar sequência:', error);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao atualizar sequência',
+        severity: 'error'
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  const visibleUsers = getVisibleUsers().filter((user): user is User => user !== undefined);
+
   return (
-    <Box sx={{ 
-      position: 'relative',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden'
-    }}>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        p: 3,
-        pb: 2
-      }}>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
-          {isAdmin ? 'Todas as Tarefas' : 'Minhas Tarefas'}
+          Tarefas
         </Typography>
         {isAdmin && (
           <Button
-            variant="outlined"
-            startIcon={<EditIcon />}
-            onClick={() => setSequenceDialogOpen(true)}
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateTaskDialogOpen(true)}
           >
-            Gerenciar Sequência
+            Nova Tarefa
           </Button>
         )}
       </Box>
 
-      <Box 
-        sx={{ 
-          flex: 1,
-          overflowX: isAdmin ? 'auto' : 'hidden',
-          overflowY: 'hidden',
-          px: 3,
-          // Estilização da barra de rolagem horizontal
-          '&::-webkit-scrollbar': {
-            height: '8px',
-            backgroundColor: 'transparent'
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: 'rgba(0,0,0,0.05)',
-            borderRadius: '4px'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: (theme) => theme.palette.primary.main,
-            borderRadius: '4px',
-            '&:hover': {
-              backgroundColor: (theme) => theme.palette.primary.dark
-            }
-          }
-        }}
-      >
-        <Box 
-          sx={{ 
-            display: 'flex',
-            flexDirection: isAdmin ? 'row' : 'column',
-            gap: 3,
-            minWidth: isAdmin ? 'fit-content' : 'auto',
-            height: '100%'
-          }}
-        >
-          {getVisibleUsers().map((currentUser) => {
-            if (!currentUser) return null;
-            
-            const userTasks = tasks.filter(task => task.assigned_to === currentUser.id);
-            const isNextUser = !isAdmin && currentUser.id !== user?.id;
-            
-            return (
-              <Box 
-                key={currentUser.id}
-                sx={{ 
-                  width: isAdmin ? '400px' : '100%',
-                  flex: isAdmin ? '0 0 auto' : 1,
-                  height: '100%'
-                }}
-              >
-                <Paper
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    bgcolor: isNextUser ? 'action.hover' : 'background.paper',
-                    borderRadius: 3,
-                    boxShadow: (theme) =>
-                      theme.palette.mode === 'dark'
-                        ? '0 4px 20px 0 rgba(0,0,0,0.4)'
-                        : '0 4px 20px 0 rgba(0,0,0,0.1)',
-                  }}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, currentUser.id)}
-                >
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    p: 2,
-                    bgcolor: isNextUser ? 'secondary.dark' : 'primary.dark',
-                    borderRadius: '12px 12px 0 0',
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Avatar
-                        sx={{
-                          bgcolor: isNextUser ? 'secondary.main' : 'primary.main',
-                          width: 48,
-                          height: 48,
-                          mr: 2,
-                          border: '2px solid',
-                          borderColor: isNextUser ? 'secondary.light' : 'primary.light',
-                        }}
-                      >
-                        {currentUser.name[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" sx={{ color: 'common.white' }}>
-                          {currentUser.name}
-                          {isNextUser && ' (Próximo)'}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: isNextUser ? 'secondary.light' : 'primary.light' }}>
-                          Nível {currentUser.sequence ?? 'N/A'}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        {visibleUsers.map((visibleUser: User) => (
+          <Box
+            key={visibleUser.id}
+            sx={{ mb: 4 }}
+          >
+            <Box
+              sx={{ p: 2 }}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, visibleUser.id)}
+            >
+              <Avatar sx={{ bgcolor: 'primary.main' }}>
+                {visibleUser.name[0]}
+              </Avatar>
+              <Typography variant="h6" sx={{ ml: 2 }}>
+                {visibleUser.name}
+              </Typography>
+            </Box>
 
-                  <Box 
-                    sx={{ 
-                      flex: 1,
-                      p: 2,
-                      overflowY: 'auto',
-                      // Estilização da barra de rolagem vertical
-                      '&::-webkit-scrollbar': {
-                        width: '8px',
-                        backgroundColor: 'transparent'
-                      },
-                      '&::-webkit-scrollbar-track': {
-                        backgroundColor: 'rgba(0,0,0,0.05)',
-                        borderRadius: '4px'
-                      },
-                      '&::-webkit-scrollbar-thumb': {
-                        backgroundColor: (theme) => 
-                          isNextUser ? theme.palette.secondary.main : theme.palette.primary.main,
-                        borderRadius: '4px',
-                        '&:hover': {
-                          backgroundColor: (theme) => 
-                            isNextUser ? theme.palette.secondary.dark : theme.palette.primary.dark
-                        }
-                      }
+            <Box sx={{ mt: 2 }}>
+              {tasks
+                .filter(task => task.assigned_to === visibleUser.id)
+                .map(task => (
+                  <Card
+                    key={task.id}
+                    sx={{
+                      mb: 1,
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 3 }
                     }}
+                    draggable
+                    onDragStart={() => handleDragStart(task)}
+                    onClick={() => handleEditTask(task)}
                   >
-                    {userTasks.map((task) => (
-                      <Card
-                        key={task.id}
-                        draggable
-                        onDragStart={() => handleDragStart(task)}
-                        sx={{
-                          mb: 2,
-                          cursor: 'grab',
-                          '&:hover': {
-                            boxShadow: 3,
-                          },
-                          '&:active': {
-                            cursor: 'grabbing',
-                          },
-                        }}
-                      >
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                            <Typography variant="h6" component="div" sx={{ fontSize: '1rem', fontWeight: 'medium' }}>
-                              {task.title}
-                            </Typography>
-                            <Box>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditTask(task);
-                                }}
-                                sx={{ mr: 1 }}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <Typography variant="h6" gutterBottom>
+                          {task.title}
+                        </Typography>
+                        <Box>
+                          <Tooltip title="Editar">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTask(task);
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                          {isAdmin && (
+                            <Tooltip title="Excluir">
                               <IconButton
                                 size="small"
                                 onClick={(e) => handleDeleteClick(task, e)}
-                                color="error"
                               >
-                                <DeleteIcon fontSize="small" />
+                                <DeleteIcon />
                               </IconButton>
-                            </Box>
-                          </Box>
-                          <Typography color="text.secondary" sx={{ mb: 1, fontSize: '0.875rem' }}>
-                            {task.description}
-                          </Typography>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Chip
-                              size="small"
-                              label={task.status === 'completed' ? 'Concluído' : task.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
-                              color={getStatusColor(task.status)}
-                              icon={getStatusIcon(task.status)}
-                            />
-                            {task.checklist && (
-                              <Typography variant="body2" color="text.secondary">
-                                {task.checklist.filter(item => item.completed).length}/{task.checklist.length} itens
-                              </Typography>
-                            )}
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {userTasks.length === 0 && (
-                      <Box
-                        sx={{
-                          p: 3,
-                          textAlign: 'center',
-                          color: 'text.secondary',
-                          border: '2px dashed',
-                          borderColor: 'divider',
-                          borderRadius: 2,
-                        }}
-                      >
-                        <Typography variant="body2">
-                          Nenhuma tarefa encontrada
-                        </Typography>
+                            </Tooltip>
+                          )}
+                        </Box>
                       </Box>
-                    )}
-                  </Box>
-                </Paper>
-              </Box>
-            );
-          })}
-        </Box>
+                      <Typography color="textSecondary" gutterBottom>
+                        {task.description}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                        <Chip
+                          icon={getStatusIcon(task.status)}
+                          label={task.status === 'completed' ? 'Concluída' : task.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
+                          color={getStatusColor(task.status)}
+                          size="small"
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                ))}
+            </Box>
+
+            {tasks.filter(task => task.assigned_to === visibleUser.id).length === 0 && (
+              <Typography color="textSecondary" align="center">
+                Nenhuma tarefa atribuída
+              </Typography>
+            )}
+          </Box>
+        ))}
       </Box>
 
-      <Tooltip title="Criar Nova Tarefa">
-        <Fab
-          color="primary"
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-          }}
-          onClick={() => setCreateTaskDialogOpen(true)}
-        >
-          <AddIcon />
-        </Fab>
-      </Tooltip>
+      {selectedTask && (
+        <TaskEditDialog
+          open={editDialogOpen}
+          onClose={handleCloseEditDialog}
+          task={selectedTask}
+          onTaskUpdated={handleTaskSaved}
+        />
+      )}
 
       <CreateTaskDialog
         open={createTaskDialogOpen}
         onClose={() => setCreateTaskDialogOpen(false)}
-        initialAssignedTo={collaboratorId}
-        onSave={async () => {
-          try {
-            const response = await serviceOrderService.getServiceOrders();
-            setTasks(response);
-            setSnackbar({
-              open: true,
-              message: 'Tarefa criada com sucesso',
-              severity: 'success'
-            });
-          } catch (error) {
-            console.error('Erro ao recarregar tarefas:', error);
-            setSnackbar({
-              open: true,
-              message: 'Erro ao atualizar lista de tarefas',
-              severity: 'error'
-            });
-          }
-        }}
-      />
-
-      <TaskEditDialog
-        open={editDialogOpen}
-        task={selectedTask}
-        onClose={handleCloseEditDialog}
-        onSave={handleTaskSaved}
+        onTaskCreated={handleTaskSaved}
       />
 
       <UserSequenceDialog
         open={sequenceDialogOpen}
         onClose={() => setSequenceDialogOpen(false)}
-        onSave={async () => {
-          try {
-            const usersData = await authService.getUsers();
-            setUsers(usersData.sort((a, b) => (a.sequence || 0) - (b.sequence || 0)));
-            setSnackbar({
-              open: true,
-              message: 'Sequência atualizada com sucesso',
-              severity: 'success'
-            });
-          } catch (error) {
-            console.error('Erro ao recarregar usuários:', error);
-            setSnackbar({
-              open: true,
-              message: 'Erro ao atualizar sequência',
-              severity: 'error'
-            });
-          }
-        }}
+        users={users}
+        onUpdateSequences={handleUpdateSequences}
       />
 
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleCancelDelete}
-        aria-labelledby="delete-dialog-title"
-      >
-        <DialogTitle id="delete-dialog-title">
-          Confirmar Exclusão
-        </DialogTitle>
+      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
         <DialogContent>
           <Typography>
-            Tem certeza que deseja excluir a tarefa "{taskToDelete?.title}"?
-            Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir esta tarefa?
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelDelete} color="primary">
-            Cancelar
-          </Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+          <Button onClick={handleCancelDelete}>Cancelar</Button>
+          <Button onClick={handleConfirmDelete} color="error">
             Excluir
           </Button>
         </DialogActions>
@@ -629,11 +458,14 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId, isAdminView = false
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

@@ -2,39 +2,37 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
-  CircularProgress,
+  Paper,
   Grid,
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
 } from '@mui/material';
-import { ServiceOrder, User } from '../../types';
-import { serviceOrderService, authService } from '../../services/api';
+import { ServiceOrder } from '../../types';
+import { serviceOrderService } from '../../services';
 
 interface UserDashboardProps {
   userId: string;
-  isAdminView?: boolean;
+  isAdmin?: boolean;
 }
 
-const UserDashboard: React.FC<UserDashboardProps> = ({ userId, isAdminView = false }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [tasks, setTasks] = useState<ServiceOrder[]>([]);
+const UserDashboard: React.FC<UserDashboardProps> = ({ userId }) => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<ServiceOrder[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [userData, tasksData] = await Promise.all([
-          authService.getUsers().then(users => users.find(u => u.id === userId)),
-          serviceOrderService.getServiceOrders()
-        ]);
-
-        if (userData) {
-          setUser(userData);
-        }
-        
-        setTasks(tasksData.filter(task => task.assigned_to === userId));
+        setLoading(true);
+        const tasksData = await serviceOrderService.getServiceOrders();
+        const userTasks = tasksData.filter(task => task.assigned_to === userId);
+        setTasks(userTasks);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
+        setError('Erro ao carregar dados do dashboard');
       } finally {
         setLoading(false);
       }
@@ -43,101 +41,84 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ userId, isAdminView = fal
     loadData();
   }, [userId]);
 
+  const getStatusColor = (status: string): 'success' | 'error' | 'warning' => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'in_progress':
+        return 'warning';
+      default:
+        return 'error';
+    }
+  };
+
+  const getStatusText = (status: string): string => {
+    switch (status) {
+      case 'completed':
+        return 'Concluída';
+      case 'in_progress':
+        return 'Em Progresso';
+      case 'pending':
+        return 'Pendente';
+      default:
+        return 'Desconhecido';
+    }
+  };
+
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
       </Box>
     );
   }
 
-  if (!user) {
+  if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">Usuário não encontrado</Typography>
+      <Box>
+        <Typography color="error">{error}</Typography>
       </Box>
     );
   }
 
-  const completedTasks = tasks.filter(task => task.status === 'completed');
-  const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
-  const pendingTasks = tasks.filter(task => task.status === 'pending');
-
-  const efficiency = tasks.length > 0
-    ? (completedTasks.length / tasks.length) * 100
-    : 0;
-
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <Grid container spacing={3}>
-        {/* Estatísticas */}
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" color="textSecondary" gutterBottom>
-                Total de Tarefas
-              </Typography>
-              <Typography variant="h3">{tasks.length}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" color="textSecondary" gutterBottom>
-                Em Progresso
-              </Typography>
-              <Typography variant="h3">{inProgressTasks.length}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" color="textSecondary" gutterBottom>
-                Concluídas
-              </Typography>
-              <Typography variant="h3">{completedTasks.length}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" color="textSecondary" gutterBottom>
-                Eficiência
-              </Typography>
-              <Typography variant="h3">{Math.round(efficiency)}%</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Lista de Tarefas */}
         <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Tarefas Recentes
-              </Typography>
-              {tasks.length === 0 ? (
-                <Typography color="textSecondary">
-                  Nenhuma tarefa encontrada
-                </Typography>
-              ) : (
-                tasks.map(task => (
-                  <Card key={task.id} sx={{ mb: 2 }}>
-                    <CardContent>
-                      <Typography variant="h6">{task.title}</Typography>
-                      <Typography color="textSecondary" gutterBottom>
-                        Status: {task.status === 'completed' ? 'Concluída' : task.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
-                      </Typography>
-                      <Typography variant="body2">{task.description}</Typography>
-                    </CardContent>
-                  </Card>
-                ))
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Minhas Tarefas
+            </Typography>
+            <List>
+              {tasks.map((task) => (
+                <ListItem key={task.id} divider>
+                  <ListItemText
+                    primary={task.title}
+                    secondary={
+                      <>
+                        {task.description}
+                        <Box mt={1}>
+                          <Chip
+                            label={getStatusText(task.status)}
+                            color={getStatusColor(task.status)}
+                            size="small"
+                          />
+                        </Box>
+                      </>
+                    }
+                  />
+                </ListItem>
+              ))}
+              {tasks.length === 0 && (
+                <ListItem>
+                  <ListItemText
+                    primary="Nenhuma tarefa encontrada"
+                    secondary="Você não possui tarefas atribuídas no momento"
+                  />
+                </ListItem>
               )}
-            </CardContent>
-          </Card>
+            </List>
+          </Paper>
         </Grid>
       </Grid>
     </Box>
