@@ -12,31 +12,27 @@ const CollaboratorDashboard: React.FC<CollaboratorDashboardProps> = ({ userId })
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchServiceOrders = async () => {
       try {
-        setLoading(true);
         const orders = await serviceOrderService.getServiceOrders();
-        setServiceOrders(orders.filter(order => order.assignedTo === userId));
+        const filteredOrders = orders.filter(order => order.assignedTo === userId);
+        setServiceOrders(filteredOrders);
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
+        console.error('Erro ao carregar ordens de serviço:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    fetchServiceOrders();
   }, [userId]);
 
   const getStatistics = () => {
-    const totalTasks = serviceOrders.length;
-    const completedTasks = serviceOrders.filter(order => order.status === 'completed').length;
-    const inProgressTasks = serviceOrders.filter(order => order.status === 'in_progress').length;
+    const total = serviceOrders.length;
+    const completed = serviceOrders.filter(order => order.status === 'completed').length;
+    const inProgress = serviceOrders.filter(order => order.status === 'in_progress').length;
 
-    return {
-      totalTasks,
-      completedTasks,
-      inProgressTasks
-    };
+    return { total, completed, inProgress };
   };
 
   const stats = getStatistics();
@@ -46,28 +42,27 @@ const CollaboratorDashboard: React.FC<CollaboratorDashboardProps> = ({ userId })
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box p={3}>
       <Typography variant="h4" gutterBottom>
-        Meu Dashboard
+        Dashboard do Colaborador
       </Typography>
-
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+        <Grid item xs={12} sm={4}>
+          <Box bgcolor="primary.main" p={3} borderRadius={2} color="white">
             <Typography variant="h6">Total de Tarefas</Typography>
-            <Typography variant="h4">{stats.totalTasks}</Typography>
+            <Typography variant="h4">{stats.total}</Typography>
           </Box>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Box sx={{ p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
-            <Typography variant="h6">Concluídas</Typography>
-            <Typography variant="h4">{stats.completedTasks}</Typography>
+        <Grid item xs={12} sm={4}>
+          <Box bgcolor="success.main" p={3} borderRadius={2} color="white">
+            <Typography variant="h6">Tarefas Concluídas</Typography>
+            <Typography variant="h4">{stats.completed}</Typography>
           </Box>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
-            <Typography variant="h6">Em Progresso</Typography>
-            <Typography variant="h4">{stats.inProgressTasks}</Typography>
+        <Grid item xs={12} sm={4}>
+          <Box bgcolor="warning.main" p={3} borderRadius={2} color="white">
+            <Typography variant="h6">Tarefas em Andamento</Typography>
+            <Typography variant="h4">{stats.inProgress}</Typography>
           </Box>
         </Grid>
       </Grid>

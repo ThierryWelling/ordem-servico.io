@@ -1,12 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
-  Typography,
-  Button,
   Box,
+  Button,
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Avatar,
+  Chip,
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
-import { User } from '../../types';
-import api from '../../services/api';
+import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
+import { User, ServiceOrder } from '../../types';
+import { userService, serviceOrderService } from '../../services';
 
 interface NewUserForm {
   name: string;
@@ -18,49 +41,47 @@ interface NewUserForm {
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState<NewUserForm>({
     name: '',
     email: '',
-    role: 'collaborator',
+    role: 'collaborator'
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error',
+    severity: 'success' as 'success' | 'error'
   });
-  const [loading, setLoading] = useState(true);
-
-  // Carrega os usuários e tarefas do banco de dados
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [usersData, ordersData] = await Promise.all([
-        api.get('/users').then(response => response.data),
-        api.get('/service-orders').then(response => response.data)
-      ]);
-      setUsers(usersData);
-      setServiceOrders(ordersData);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao carregar dados',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [usersData, ordersData] = await Promise.all([
+          userService.getUsers(),
+          serviceOrderService.getServiceOrders()
+        ]);
+        setUsers(usersData);
+        setServiceOrders(ordersData);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        setSnackbar({
+          open: true,
+          message: 'Erro ao carregar dados',
+          severity: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadData();
   }, []);
 
   const handleOpenDialog = (user?: User) => {
     if (user) {
-      setEditingUser(user);
+      setSelectedUser(user);
       setNewUser({
         name: user.name,
         email: user.email,
@@ -68,11 +89,11 @@ const UserManagement: React.FC = () => {
         sequence: user.sequence
       });
     } else {
-      setEditingUser(null);
+      setSelectedUser(null);
       setNewUser({
         name: '',
         email: '',
-        role: 'collaborator',
+        role: 'collaborator'
       });
     }
     setOpenDialog(true);
@@ -80,77 +101,66 @@ const UserManagement: React.FC = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    setEditingUser(null);
+    setSelectedUser(null);
     setNewUser({
       name: '',
       email: '',
-      role: 'collaborator',
+      role: 'collaborator'
     });
   };
 
-  const handleSaveUser = async () => {
+  const handleSubmit = async () => {
     try {
-      if (editingUser) {
-        await api.put(`/users/${editingUser.id}`, {
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          sequence: newUser.sequence
-        });
+      if (selectedUser) {
+        await userService.updateUser(selectedUser.id, newUser);
         setSnackbar({
           open: true,
-          message: 'Colaborador atualizado com sucesso',
-          severity: 'success',
+          message: 'Usuário atualizado com sucesso',
+          severity: 'success'
         });
       } else {
-        await api.post('/users', {
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          sequence: newUser.sequence
-        });
+        await userService.createUser(newUser);
         setSnackbar({
           open: true,
-          message: 'Colaborador adicionado com sucesso',
-          severity: 'success',
+          message: 'Usuário criado com sucesso',
+          severity: 'success'
         });
       }
+      const updatedUsers = await userService.getUsers();
+      setUsers(updatedUsers);
       handleCloseDialog();
-      loadData(); // Recarrega a lista de usuários
     } catch (error) {
       console.error('Erro ao salvar usuário:', error);
       setSnackbar({
         open: true,
-        message: 'Erro ao salvar colaborador',
-        severity: 'error',
+        message: 'Erro ao salvar usuário',
+        severity: 'error'
       });
     }
   };
 
   const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
-          Gerenciar Colaboradores
-        </Typography>
+    <Box p={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Button
           variant="contained"
+          color="primary"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
         >
-          Novo Colaborador
+          Novo Usuário
         </Button>
       </Box>
 
@@ -171,51 +181,48 @@ const UserManagement: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {users
-                  .filter(user => user.role === 'collaborator')
-                  .map((user) => {
-                    const userTasks = serviceOrders.filter(task => task.assigned_to === user.id);
-                    const inProgressTasks = userTasks.filter(task => task.status === 'in_progress');
-                    const completedTasks = userTasks.filter(task => task.status === 'completed');
+                {users.map(user => {
+                  const userTasks = serviceOrders.filter(order => order.assignedTo === user.id);
+                  const completedTasks = userTasks.filter(task => task.status === 'completed');
+                  const inProgressTasks = userTasks.filter(task => task.status === 'in_progress');
 
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Avatar alt={user.name}>
-                              {user.name[0]}
-                            </Avatar>
-                            <Typography>{user.name}</Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={user.role === 'admin' ? 'Administrador' : 'Colaborador'}
-                            color={user.role === 'admin' ? 'primary' : 'default'}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{userTasks.length}</TableCell>
-                        <TableCell>{inProgressTasks.length}</TableCell>
-                        <TableCell>{completedTasks.length}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={inProgressTasks.length > 0 ? 'Ativo' : 'Disponível'}
-                            color={inProgressTasks.length > 0 ? 'success' : 'primary'}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton 
-                            onClick={() => handleOpenDialog(user)}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <Box display="flex" alignItems="center">
+                          <Avatar alt={user.name}>
+                            {user.name.charAt(0)}
+                          </Avatar>
+                          <Box ml={2}>{user.name}</Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.role === 'admin' ? 'Administrador' : 'Colaborador'}
+                          color={user.role === 'admin' ? 'primary' : 'default'}
+                        />
+                      </TableCell>
+                      <TableCell>{userTasks.length}</TableCell>
+                      <TableCell>{inProgressTasks.length}</TableCell>
+                      <TableCell>{completedTasks.length}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.status === 'active' ? 'Ativo' : 'Inativo'}
+                          color={user.status === 'active' ? 'success' : 'error'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenDialog(user)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -224,28 +231,27 @@ const UserManagement: React.FC = () => {
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>
-          {editingUser ? 'Editar Colaborador' : 'Novo Colaborador'}
+          {selectedUser ? 'Editar Usuário' : 'Novo Usuário'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+          <Box display="flex" flexDirection="column" gap={2} pt={1}>
             <TextField
               label="Nome"
-              value={newUser.name}
-              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
               fullWidth
+              value={newUser.name}
+              onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
             />
             <TextField
               label="Email"
-              value={newUser.email}
-              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
               fullWidth
+              value={newUser.email}
+              onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
             />
             <FormControl fullWidth>
               <InputLabel>Função</InputLabel>
               <Select
                 value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'collaborator' | 'user' })}
-                label="Função"
+                onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value as 'admin' | 'collaborator' | 'user' }))}
               >
                 <MenuItem value="admin">Administrador</MenuItem>
                 <MenuItem value="collaborator">Colaborador</MenuItem>
@@ -255,20 +261,16 @@ const UserManagement: React.FC = () => {
             <TextField
               label="Sequência"
               type="number"
-              value={newUser.sequence || ''}
-              onChange={(e) => setNewUser({ ...newUser, sequence: parseInt(e.target.value) || undefined })}
               fullWidth
+              value={newUser.sequence || ''}
+              onChange={(e) => setNewUser(prev => ({ ...prev, sequence: parseInt(e.target.value) || undefined }))}
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button
-            onClick={handleSaveUser}
-            variant="contained"
-            disabled={!newUser.name || !newUser.email}
-          >
-            Salvar
+          <Button onClick={handleSubmit} variant="contained" color="primary">
+            {selectedUser ? 'Atualizar' : 'Criar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -278,11 +280,7 @@ const UserManagement: React.FC = () => {
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}
         </Alert>
       </Snackbar>
