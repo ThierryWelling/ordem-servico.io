@@ -4,137 +4,120 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
+  Button,
   Box,
+  IconButton,
   List,
   ListItem,
   ListItemText,
-  IconButton,
+  ListItemSecondaryAction
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Task, ChecklistItem } from '../types';
+import { Delete as DeleteIcon } from '@mui/icons-material';
+import { v4 as uuidv4 } from 'uuid';
+import { ChecklistItem } from '../types';
 
 interface CreateTaskDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (task: Partial<Task>) => void;
+  onSubmit: (title: string, description: string, checklist: ChecklistItem[]) => void;
 }
 
-const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
-  open,
-  onClose,
-  onSave,
-}) => {
+const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({ open, onClose, onSubmit }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [newItem, setNewItem] = useState('');
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
 
-  const handleAddChecklistItem = () => {
-    if (newChecklistItem.trim()) {
-      const now = new Date().toISOString();
-      const newItem: ChecklistItem = {
-        id: Date.now().toString(),
-        service_order_id: '',
-        description: newChecklistItem,
-        text: newChecklistItem,
+  const handleAddItem = () => {
+    if (newItem.trim()) {
+      const timestamp = new Date().toISOString();
+      const item: ChecklistItem = {
+        id: uuidv4(),
+        title: newItem.trim(),
         completed: false,
-        created_at: now,
-        updated_at: now,
+        created_at: timestamp,
+        updated_at: timestamp
       };
-      setChecklist([...checklist, newItem]);
-      setNewChecklistItem('');
+      setChecklist([...checklist, item]);
+      setNewItem('');
     }
   };
 
-  const handleRemoveChecklistItem = (index: number) => {
-    const newChecklist = [...checklist];
-    newChecklist.splice(index, 1);
-    setChecklist(newChecklist);
+  const handleRemoveItem = (id: string) => {
+    setChecklist(checklist.filter(item => item.id !== id));
   };
 
-  const handleSave = () => {
-    const newTask: Partial<Task> = {
-      title,
-      description,
-      checklist,
-      status: 'pending',
-      priority: 'medium',
-    };
-    onSave(newTask);
-    handleClose();
+  const handleSubmit = () => {
+    if (title.trim()) {
+      onSubmit(title, description, checklist);
+      setTitle('');
+      setDescription('');
+      setChecklist([]);
+    }
   };
 
-  const handleClose = () => {
-    setTitle('');
-    setDescription('');
-    setNewChecklistItem('');
-    setChecklist([]);
-    onClose();
+  const handleKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleAddItem();
+    }
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Nova Tarefa</DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <Box display="flex" flexDirection="column" gap={2} pt={1}>
           <TextField
             label="Título"
+            fullWidth
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            fullWidth
           />
           <TextField
             label="Descrição"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            fullWidth
             multiline
             rows={4}
-            fullWidth
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
           <Box>
             <TextField
-              label="Item da Lista"
-              value={newChecklistItem}
-              onChange={(e) => setNewChecklistItem(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddChecklistItem();
-                }
-              }}
+              label="Novo Item do Checklist"
               fullWidth
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              onKeyPress={handleKeyPress}
             />
           </Box>
           <List>
-            {checklist.map((item, index) => (
-              <ListItem
-                key={item.id}
-                secondaryAction={
+            {checklist.map((item) => (
+              <ListItem key={item.id}>
+                <ListItemText primary={item.title} />
+                <ListItemSecondaryAction>
                   <IconButton
                     edge="end"
-                    aria-label="delete"
-                    onClick={() => handleRemoveChecklistItem(index)}
+                    onClick={() => handleRemoveItem(item.id)}
                   >
                     <DeleteIcon />
                   </IconButton>
-                }
-              >
-                <ListItemText primary={item.text} />
+                </ListItemSecondaryAction>
               </ListItem>
             ))}
           </List>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Cancelar</Button>
+        <Button onClick={onClose}>Cancelar</Button>
         <Button
-          onClick={handleSave}
+          onClick={handleSubmit}
           variant="contained"
-          disabled={!title.trim() || !description.trim()}
+          color="primary"
+          disabled={!title.trim()}
         >
-          Salvar
+          Criar
         </Button>
       </DialogActions>
     </Dialog>

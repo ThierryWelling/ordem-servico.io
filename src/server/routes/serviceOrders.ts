@@ -1,69 +1,54 @@
 import express, { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import pool from '../config/database';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { authenticateToken } from '../middleware/auth';
-import serviceOrdersService from '../services/serviceOrdersService';
 
 const router = express.Router();
 
-// Lista todas as ordens de serviço
-router.get('/', authenticateToken, (async (_req: Request, res: Response): Promise<void> => {
+// Buscar todas as ordens de serviço
+router.get('/', authenticateToken, (async (_: Request, res: Response): Promise<void> => {
     try {
-        const serviceOrders = await serviceOrdersService.getAllServiceOrders();
+        const [serviceOrders] = await pool.query<RowDataPacket[]>('SELECT * FROM service_orders');
         res.json(serviceOrders);
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao buscar ordens de serviço' });
+        console.error('Erro ao buscar ordens de serviço:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
     }
 }) as express.RequestHandler);
 
-// Busca uma ordem de serviço específica
+// Buscar uma ordem de serviço específica
 router.get('/:id', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
-        const serviceOrder = await serviceOrdersService.getServiceOrderById(req.params.id);
-        if (!serviceOrder) {
+        const [serviceOrders] = await pool.query<RowDataPacket[]>(
+            'SELECT * FROM service_orders WHERE id = ?',
+            [req.params.id]
+        );
+
+        if (serviceOrders.length === 0) {
             res.status(404).json({ message: 'Ordem de serviço não encontrada' });
             return;
         }
-        res.json(serviceOrder);
+
+        res.json(serviceOrders[0]);
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao buscar ordem de serviço' });
+        console.error('Erro ao buscar ordem de serviço:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
     }
 }) as express.RequestHandler);
 
-// Cria uma nova ordem de serviço
-router.post('/', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
+// Buscar ordens de serviço por usuário
+router.get('/user/:assigned_to', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
-        const serviceOrder = await serviceOrdersService.createServiceOrder(req.body);
-        res.status(201).json(serviceOrder);
+        const [serviceOrders] = await pool.query<RowDataPacket[]>(
+            'SELECT * FROM service_orders WHERE assigned_to = ?',
+            [req.params.assigned_to]
+        );
+        res.json(serviceOrders);
     } catch (error) {
-        res.status(500).json({ message: 'Erro ao criar ordem de serviço' });
+        console.error('Erro ao buscar ordens de serviço do usuário:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
     }
 }) as express.RequestHandler);
 
-// Atualiza uma ordem de serviço
-router.put('/:id', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
-    try {
-        const serviceOrder = await serviceOrdersService.updateServiceOrder(req.params.id, req.body);
-        if (!serviceOrder) {
-            res.status(404).json({ message: 'Ordem de serviço não encontrada' });
-            return;
-        }
-        res.json(serviceOrder);
-    } catch (error) {
-        res.status(500).json({ message: 'Erro ao atualizar ordem de serviço' });
-    }
-}) as express.RequestHandler);
-
-// Exclui uma ordem de serviço
-router.delete('/:id', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
-    try {
-        const success = await serviceOrdersService.deleteServiceOrder(req.params.id);
-        if (!success) {
-            res.status(404).json({ message: 'Ordem de serviço não encontrada' });
-            return;
-        }
-        res.status(204).send();
-    } catch (error) {
-        res.status(500).json({ message: 'Erro ao excluir ordem de serviço' });
-    }
-}) as express.RequestHandler);
-
-export default router; 
+export default router;

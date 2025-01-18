@@ -1,23 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Grid } from '@mui/material';
-import { ServiceOrder, User } from '../../types';
-import { serviceOrderService, userService } from '../../services';
+import { ServiceOrder } from '../../types';
+import { serviceOrderService } from '../../services';
 
 const AdminDashboard: React.FC = () => {
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchData = async () => {
       try {
-        setLoading(true);
-        const [ordersData, usersData] = await Promise.all([
-          serviceOrderService.getServiceOrders(),
-          userService.getUsers()
-        ]);
-        setServiceOrders(ordersData);
-        setUsers(usersData);
+        const orders = await serviceOrderService.getServiceOrders();
+        setServiceOrders(orders);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
       } finally {
@@ -25,21 +19,16 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
-    loadData();
+    fetchData();
   }, []);
 
   const getStatistics = () => {
-    const totalTasks = serviceOrders.length;
-    const completedTasks = serviceOrders.filter(order => order.status === 'completed').length;
-    const inProgressTasks = serviceOrders.filter(order => order.status === 'in_progress').length;
-    const pendingTasks = serviceOrders.filter(order => order.status === 'pending').length;
+    const total = serviceOrders.length;
+    const completed = serviceOrders.filter(order => order.status === 'completed').length;
+    const inProgress = serviceOrders.filter(order => order.status === 'in_progress').length;
+    const pending = serviceOrders.filter(order => order.status === 'pending').length;
 
-    return {
-      totalTasks,
-      completedTasks,
-      inProgressTasks,
-      pendingTasks
-    };
+    return { total, completed, inProgress, pending };
   };
 
   const stats = getStatistics();
@@ -49,34 +38,33 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box p={3}>
       <Typography variant="h4" gutterBottom>
         Dashboard Administrativo
       </Typography>
-
       <Grid container spacing={3}>
-        <Grid item xs={12} md={3}>
-          <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-            <Typography variant="h6">Total de Tarefas</Typography>
-            <Typography variant="h4">{stats.totalTasks}</Typography>
+        <Grid item xs={12} sm={6} md={3}>
+          <Box bgcolor="primary.main" p={3} borderRadius={2} color="white">
+            <Typography variant="h6">Total de Ordens</Typography>
+            <Typography variant="h4">{stats.total}</Typography>
           </Box>
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Box sx={{ p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Box bgcolor="success.main" p={3} borderRadius={2} color="white">
             <Typography variant="h6">Concluídas</Typography>
-            <Typography variant="h4">{stats.completedTasks}</Typography>
+            <Typography variant="h4">{stats.completed}</Typography>
           </Box>
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
-            <Typography variant="h6">Em Progresso</Typography>
-            <Typography variant="h4">{stats.inProgressTasks}</Typography>
+        <Grid item xs={12} sm={6} md={3}>
+          <Box bgcolor="warning.main" p={3} borderRadius={2} color="white">
+            <Typography variant="h6">Em Andamento</Typography>
+            <Typography variant="h4">{stats.inProgress}</Typography>
           </Box>
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Box sx={{ p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Box bgcolor="error.main" p={3} borderRadius={2} color="white">
             <Typography variant="h6">Pendentes</Typography>
-            <Typography variant="h4">{stats.pendingTasks}</Typography>
+            <Typography variant="h4">{stats.pending}</Typography>
           </Box>
         </Grid>
       </Grid>

@@ -1,59 +1,55 @@
 import React, { useEffect, useRef } from 'react';
 
 interface AudioVisualizerProps {
-  onVisualizerReady?: () => void;
+  audioStream: MediaStream | null;
 }
 
-const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ onVisualizerReady }) => {
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ audioStream }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!audioStream || !canvasRef.current) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(audioStream);
+    source.connect(analyser);
+
+    analyser.fftSize = 256;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d')!;
+    const width = canvas.width;
+    const height = canvas.height;
+    const barWidth = (width / bufferLength) * 2.5;
 
     const draw = () => {
-      if (!ctx) return;
-      
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Simulação simples de visualização
-      const bars = 20;
-      const barWidth = canvas.width / bars;
-      
-      for (let i = 0; i < bars; i++) {
-        const height = Math.random() * canvas.height;
-        ctx.fillStyle = '#4CAF50';
-        ctx.fillRect(
-          i * barWidth,
-          canvas.height - height,
-          barWidth - 2,
-          height
-        );
-      }
-      
       requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, width, height);
+
+      let x = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * height;
+        ctx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
+        ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
+      }
     };
 
     draw();
-    onVisualizerReady?.();
 
     return () => {
-      // Cleanup
+      source.disconnect();
+      audioContext.close();
     };
-  }, [onVisualizerReady]);
+  }, [audioStream]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      width={300}
-      height={50}
-      style={{ width: '100%', height: '50px' }}
-    />
-  );
+  return <canvas ref={canvasRef} width={300} height={50} />;
 };
 
 export default AudioVisualizer; 

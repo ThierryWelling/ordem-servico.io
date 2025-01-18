@@ -1,32 +1,20 @@
-import express from 'express';
-import { Request, Response } from 'express';
-import { SystemSettings } from '../../types';
-import db from '../database/index';
-import uploadMiddleware from '../middleware/uploadMiddleware';
+import express, { Request, Response } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import pool from '../config/database';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
-interface MulterRequest extends Request {
-    file?: Express.Multer.File;
-}
-
-router.post('/logo', uploadMiddleware as unknown as express.RequestHandler, async (req: MulterRequest, res: Response) => {
+// Buscar configurações
+router.get('/', authenticateToken, (async (_: Request, res: Response): Promise<void> => {
     try {
-        if (!req.file) {
-            res.status(400).json({ message: 'Nenhum arquivo enviado' });
-            return;
-        }
-
-        const settings = await db.query<SystemSettings>(
-            'UPDATE system_settings SET company_logo = ? WHERE id = 1 RETURNING *',
-            [req.file.filename]
-        );
-
-        res.json(settings[0]);
+        const [settings] = await pool.query<RowDataPacket[]>('SELECT * FROM settings LIMIT 1');
+        res.json(settings[0] || {});
     } catch (error) {
-        console.error('Erro ao atualizar logo:', error);
-        res.status(500).json({ message: 'Erro ao atualizar logo' });
+        console.error('Erro ao buscar configurações:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
     }
-});
+}) as express.RequestHandler);
 
-export default router; 
+export default router;

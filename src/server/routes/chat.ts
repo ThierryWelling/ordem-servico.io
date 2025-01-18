@@ -69,12 +69,12 @@ router.get('/conversations/:userId', authenticateToken, (async (req: Request, re
 }) as express.RequestHandler);
 
 // Buscar mensagens entre dois usuários
-router.get('/messages/:userId/:otherUserId', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
+router.get('/messages/:senderId/:receiverId', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
         // Marcar mensagens como lidas
         await pool.query<ResultSetHeader>(
             'UPDATE chat_messages SET read_at = CURRENT_TIMESTAMP WHERE sender_id = ? AND receiver_id = ? AND read_at IS NULL',
-            [req.params.otherUserId, req.params.userId]
+            [req.params.senderId, req.params.receiverId]
         );
 
         // Buscar mensagens
@@ -89,10 +89,10 @@ router.get('/messages/:userId/:otherUserId', authenticateToken, (async (req: Req
                OR (cm.sender_id = ? AND cm.receiver_id = ?)
             ORDER BY cm.created_at ASC
         `, [
-            req.params.userId,
-            req.params.otherUserId,
-            req.params.otherUserId,
-            req.params.userId
+            req.params.senderId,
+            req.params.receiverId,
+            req.params.receiverId,
+            req.params.senderId
         ]);
 
         res.json(messages);
@@ -102,53 +102,4 @@ router.get('/messages/:userId/:otherUserId', authenticateToken, (async (req: Req
     }
 }) as express.RequestHandler);
 
-// Enviar mensagem
-router.post('/', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
-    const { sender_id, receiver_id, content } = req.body;
-
-    if (!sender_id || !receiver_id || !content) {
-        res.status(400).json({ message: 'Campos obrigatórios não preenchidos' });
-        return;
-    }
-
-    try {
-        const id = uuidv4();
-        await pool.query<ResultSetHeader>(
-            'INSERT INTO chat_messages (id, sender_id, receiver_id, content) VALUES (?, ?, ?, ?)',
-            [id, sender_id, receiver_id, content]
-        );
-
-        // Buscar a mensagem criada com informações dos usuários
-        const [messages] = await pool.query<RowDataPacket[]>(`
-            SELECT cm.*, 
-                   s.name as sender_name,
-                   r.name as receiver_name
-            FROM chat_messages cm
-            JOIN users s ON cm.sender_id = s.id
-            JOIN users r ON cm.receiver_id = r.id
-            WHERE cm.id = ?
-        `, [id]);
-
-        res.status(201).json(messages[0]);
-    } catch (error) {
-        console.error('Erro ao enviar mensagem:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
-    }
-}) as express.RequestHandler);
-
-// Marcar mensagens como lidas
-router.put('/read/:senderId/:receiverId', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
-    try {
-        await pool.query<ResultSetHeader>(
-            'UPDATE chat_messages SET read_at = CURRENT_TIMESTAMP WHERE sender_id = ? AND receiver_id = ? AND read_at IS NULL',
-            [req.params.senderId, req.params.receiverId]
-        );
-
-        res.status(204).send();
-    } catch (error) {
-        console.error('Erro ao marcar mensagens como lidas:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
-    }
-}) as express.RequestHandler);
-
-export default router; 
+export default router;
