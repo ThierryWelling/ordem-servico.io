@@ -28,15 +28,8 @@ import {
   Alert
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon } from '@mui/icons-material';
-import { User, ServiceOrder } from '../../types';
+import { User, NewUser, UpdateUser, ServiceOrder } from '../../types';
 import { userService, serviceOrderService } from '../../services';
-
-interface NewUserForm {
-  name: string;
-  email: string;
-  role: 'admin' | 'collaborator' | 'user';
-  sequence?: number;
-}
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -44,10 +37,14 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState<NewUserForm>({
+  const [newUser, setNewUser] = useState<NewUser>({
     name: '',
     email: '',
-    role: 'collaborator'
+    role: 'collaborator',
+    password: '',
+    status: 'active',
+    companyName: '',
+    sequence: 0
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -86,14 +83,23 @@ const UserManagement: React.FC = () => {
         name: user.name,
         email: user.email,
         role: user.role,
-        sequence: user.sequence
+        sequence: user.sequence || 0,
+        password: '',
+        status: user.status,
+        companyName: user.companyName || '',
+        companyLogo: user.companyLogo,
+        profilePicture: user.profilePicture
       });
     } else {
       setSelectedUser(null);
       setNewUser({
         name: '',
         email: '',
-        role: 'collaborator'
+        role: 'collaborator',
+        password: '',
+        status: 'active',
+        companyName: '',
+        sequence: 0
       });
     }
     setOpenDialog(true);
@@ -105,14 +111,31 @@ const UserManagement: React.FC = () => {
     setNewUser({
       name: '',
       email: '',
-      role: 'collaborator'
+      role: 'collaborator',
+      password: '',
+      status: 'active',
+      companyName: '',
+      sequence: 0
     });
   };
 
   const handleSubmit = async () => {
     try {
       if (selectedUser) {
-        await userService.updateUser(selectedUser.id, newUser);
+        const updateData: UpdateUser = {
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          sequence: newUser.sequence,
+          status: newUser.status,
+          companyName: newUser.companyName,
+          companyLogo: newUser.companyLogo,
+          profilePicture: newUser.profilePicture
+        };
+        if (newUser.password) {
+          updateData.password = newUser.password;
+        }
+        await userService.updateUser(selectedUser.id, updateData);
         setSnackbar({
           open: true,
           message: 'Usuário atualizado com sucesso',

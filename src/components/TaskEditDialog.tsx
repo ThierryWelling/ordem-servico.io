@@ -49,12 +49,11 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
       setLoading(true);
       const newItem: ChecklistItem = {
         id: uuidv4(),
-        service_order_id: editedTask.id,
-        text: newItemTitle.trim(),
-        description: newItemTitle.trim(),
+        serviceOrderId: editedTask.id,
+        title: newItemTitle.trim(),
         completed: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
       const updatedChecklist = [...(editedTask.checklist || []), newItem];
@@ -182,7 +181,7 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
                   onClick={() => handleToggleItem(item.id)}
                 >
                   <ListItemText
-                    primary={item.text}
+                    primary={item.title}
                     style={{
                       textDecoration: item.completed ? 'line-through' : 'none',
                       color: item.completed ? 'gray' : 'inherit'

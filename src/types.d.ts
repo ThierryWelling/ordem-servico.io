@@ -4,11 +4,30 @@ declare global {
     namespace Express {
         interface Request {
             file?: Multer.File;
+            user?: {
+                id: string;
+                role: string;
+            };
         }
     }
 }
 
 // Interface para dados do banco (snake_case)
+export interface DbUser {
+    id: string;
+    name: string;
+    email: string;
+    role: 'admin' | 'collaborator' | 'user';
+    sequence?: number;
+    company_name?: string;
+    company_logo?: string;
+    profile_picture?: string;
+    status: 'active' | 'inactive';
+    created_at: string;
+    updated_at: string;
+    password_hash: string;
+}
+
 export interface DbChecklistItem {
     id: string;
     service_order_id: string;
@@ -35,6 +54,44 @@ export interface DbServiceOrder {
 }
 
 // Interface para frontend (camelCase)
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: 'admin' | 'collaborator' | 'user';
+    sequence?: number;
+    companyName?: string;
+    companyLogo?: string;
+    profilePicture?: string;
+    status: 'active' | 'inactive';
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface NewUser {
+    name: string;
+    email: string;
+    role: 'admin' | 'collaborator' | 'user';
+    sequence?: number;
+    companyName?: string;
+    companyLogo?: string;
+    profilePicture?: string;
+    status: 'active' | 'inactive';
+    password: string;
+}
+
+export interface UpdateUser {
+    name?: string;
+    email?: string;
+    role?: 'admin' | 'collaborator' | 'user';
+    sequence?: number;
+    companyName?: string;
+    companyLogo?: string;
+    profilePicture?: string;
+    status?: 'active' | 'inactive';
+    password?: string;
+}
+
 export interface ChecklistItem {
     id: string;
     serviceOrderId: string;
@@ -67,9 +124,61 @@ export interface Activity {
     status: 'pending' | 'completed';
     createdBy: string;
     createdByName?: string;
+    created_by_name?: string;
     createdAt: string;
     updatedAt: string;
     completedAt?: string;
+    type?: 'create' | 'update' | 'delete';
+    details?: Record<string, any>;
 }
 
-export {}; 
+export interface Task {
+    id: string;
+    title: string;
+    description: string;
+    status: 'pending' | 'in_progress' | 'completed';
+    priority: 'low' | 'medium' | 'high';
+    assignedTo: string;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    completedAt?: string;
+    checklist: ChecklistItem[];
+}
+
+export interface SystemSettings {
+    theme: 'light' | 'dark';
+    language: 'pt-BR' | 'en-US';
+    notifications: boolean;
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoPath: string;
+    companyName: string;
+}
+
+export interface Comment {
+    id: string;
+    text: string;
+    userId: string;
+    serviceOrderId: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ChatMessage {
+    id: string;
+    text: string;
+    senderId: string;
+    receiverId: string;
+    createdAt: string;
+    updatedAt: string;
+    read: boolean;
+}
+
+export interface ChatProps {
+    messages: any[];
+    onSendMessage: () => void;
+    user: User;
+}
+
+export {};
