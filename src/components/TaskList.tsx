@@ -198,8 +198,8 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
     const handleCreateTask = (event: CustomEvent) => {
       setCreateTaskDialogOpen(true);
       // Se tiver um usuário atribuído no evento, vamos pré-selecionar ele
-      if (event.detail?.assignedTo) {
-        // Aqui você pode passar o assignedTo para o CreateTaskDialog
+      if (event.detail?.assigned_to) {
+        // Aqui você pode passar o assigned_to para o CreateTaskDialog
         // através de um novo estado ou prop
       }
     };

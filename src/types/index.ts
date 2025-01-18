@@ -4,8 +4,8 @@ export interface User {
     email: string;
     role: 'admin' | 'collaborator' | 'user';
     sequence: number;
-    companyName?: string;
-    companyLogo?: string;
+    company_name?: string;
+    company_logo?: string;
     status: 'active' | 'inactive';
 }
 
@@ -52,7 +52,7 @@ export interface Activity {
     id: string;
     type: 'task_created' | 'task_updated' | 'task_completed';
     description: string;
-    userId: string;
-    taskId: string;
+    user_id: string;
+    task_id: string;
     created_at: string;
 } 

@@ -69,12 +69,12 @@ router.get('/conversations/:userId', authenticateToken, (async (req: Request, re
 }) as express.RequestHandler);
 
 // Buscar mensagens entre dois usuários
-router.get('/messages/:senderId/:receiverId', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
+router.get('/messages/:sender_id/:receiver_id', authenticateToken, (async (req: Request, res: Response): Promise<void> => {
     try {
         // Marcar mensagens como lidas
         await pool.query<ResultSetHeader>(
             'UPDATE chat_messages SET read_at = CURRENT_TIMESTAMP WHERE sender_id = ? AND receiver_id = ? AND read_at IS NULL',
-            [req.params.senderId, req.params.receiverId]
+            [req.params.sender_id, req.params.receiver_id]
         );
 
         // Buscar mensagens
@@ -89,10 +89,10 @@ router.get('/messages/:senderId/:receiverId', authenticateToken, (async (req: Re
                OR (cm.sender_id = ? AND cm.receiver_id = ?)
             ORDER BY cm.created_at ASC
         `, [
-            req.params.senderId,
-            req.params.receiverId,
-            req.params.receiverId,
-            req.params.senderId
+            req.params.sender_id,
+            req.params.receiver_id,
+            req.params.receiver_id,
+            req.params.sender_id
         ]);
 
         res.json(messages);

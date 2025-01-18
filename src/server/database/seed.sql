@@ -18,46 +18,38 @@ INSERT INTO themes (id, name, primary_color, secondary_color, font_size, border_
 ('theme-dark-1', 'Tema Escuro - Azul', '#90caf9', '#f48fb1', 16, 8, true, false),
 ('theme-dark-2', 'Tema Escuro - Verde', '#a5d6a7', '#ff80ab', 16, 4, true, false);
 
--- Inserir usuários (senha: 123456 para todos)
-INSERT INTO users (id, name, email, password, role, sequence) VALUES
-('user-admin-1', 'Thierry Martins', 'thierry@agenciaalthaia.com.br', '$2b$10$5QZM1uqYoWZiPzh5vX7gEOlHu.ERhgKGYf5GR5EhAoRNOxoSTgyeC', 'admin', 1),
-('user-admin-2', 'João Silva', 'joao@agenciaalthaia.com.br', '$2b$10$5QZM1uqYoWZiPzh5vX7gEOlHu.ERhgKGYf5GR5EhAoRNOxoSTgyeC', 'admin', 2),
-('user-colab-1', 'Maria Santos', 'maria@agenciaalthaia.com.br', '$2b$10$5QZM1uqYoWZiPzh5vX7gEOlHu.ERhgKGYf5GR5EhAoRNOxoSTgyeC', 'collaborator', 3),
-('user-colab-2', 'Pedro Costa', 'pedro@agenciaalthaia.com.br', '$2b$10$5QZM1uqYoWZiPzh5vX7gEOlHu.ERhgKGYf5GR5EhAoRNOxoSTgyeC', 'collaborator', 4),
-('user-colab-3', 'Ana Oliveira', 'ana@agenciaalthaia.com.br', '$2b$10$5QZM1uqYoWZiPzh5vX7gEOlHu.ERhgKGYf5GR5EhAoRNOxoSTgyeC', 'collaborator', 5);
-
--- Inserir configurações do sistema
-INSERT INTO system_settings (id, company_name, company_logo_url, active_theme_id) VALUES
-('1', 'Agência Althaia', '/uploads/logos/zapt2-01.png', 'theme-light-1');
+-- Inserir usuários
+INSERT INTO users (id, name, email, password, role, sequence, company_name, company_logo, status) VALUES
+('user-1', 'Admin', 'admin@example.com', '$2b$10$...', 'admin', 1, 'Empresa A', NULL, 'active'),
+('user-2', 'Colaborador 1', 'colab1@example.com', '$2b$10$...', 'collaborator', 2, 'Empresa B', NULL, 'active'),
+('user-3', 'Colaborador 2', 'colab2@example.com', '$2b$10$...', 'collaborator', 3, 'Empresa C', NULL, 'active');
 
 -- Inserir ordens de serviço
-INSERT INTO service_orders (id, title, description, status, priority, created_by, assigned_to) VALUES
-('os-1', 'Desenvolvimento Website E-commerce', 'Criar website completo para loja virtual de roupas', 'in_progress', 'high', 'user-admin-1', 'user-colab-1'),
-('os-2', 'Campanha Marketing Digital', 'Desenvolver campanha para redes sociais', 'pending', 'medium', 'user-admin-1', 'user-colab-2'),
-('os-3', 'Design Logo Empresa', 'Criar identidade visual para startup de tecnologia', 'completed', 'high', 'user-admin-2', 'user-colab-3'),
-('os-4', 'Manutenção SEO', 'Otimização mensal de SEO para cliente', 'in_progress', 'low', 'user-admin-2', 'user-colab-1'),
-('os-5', 'Email Marketing', 'Criar template e conteúdo para newsletter', 'pending', 'medium', 'user-admin-1', 'user-colab-2');
+INSERT INTO service_orders (id, title, description, status, priority, assigned_to, created_by, created_at, updated_at) VALUES
+('os-1', 'Website E-commerce', 'Desenvolvimento de loja virtual', 'in_progress', 'high', 'user-2', 'user-1', NOW(), NOW()),
+('os-2', 'Campanha Marketing', 'Campanha redes sociais', 'pending', 'medium', 'user-3', 'user-1', NOW(), NOW()),
+('os-3', 'Design Logo', 'Criação de identidade visual', 'completed', 'low', 'user-2', 'user-1', NOW(), NOW());
 
 -- Inserir itens de checklist
-INSERT INTO checklist_items (id, service_order_id, text, completed) VALUES
+INSERT INTO checklist_items (id, service_order_id, title, completed, created_at, updated_at) VALUES
 -- OS-1: Website E-commerce
-('check-1-1', 'os-1', 'Análise de requisitos', true),
-('check-1-2', 'os-1', 'Design de interface', true),
-('check-1-3', 'os-1', 'Desenvolvimento frontend', false),
-('check-1-4', 'os-1', 'Desenvolvimento backend', false),
-('check-1-5', 'os-1', 'Testes e ajustes', false),
+('check-1-1', 'os-1', 'Análise de requisitos', true, NOW(), NOW()),
+('check-1-2', 'os-1', 'Design de interface', true, NOW(), NOW()),
+('check-1-3', 'os-1', 'Desenvolvimento frontend', false, NOW(), NOW()),
+('check-1-4', 'os-1', 'Desenvolvimento backend', false, NOW(), NOW()),
+('check-1-5', 'os-1', 'Testes e ajustes', false, NOW(), NOW()),
 
 -- OS-2: Campanha Marketing
-('check-2-1', 'os-2', 'Pesquisa de público-alvo', true),
-('check-2-2', 'os-2', 'Criação de conteúdo', false),
-('check-2-3', 'os-2', 'Design de posts', false),
-('check-2-4', 'os-2', 'Programação de posts', false),
+('check-2-1', 'os-2', 'Pesquisa de público-alvo', true, NOW(), NOW()),
+('check-2-2', 'os-2', 'Criação de conteúdo', false, NOW(), NOW()),
+('check-2-3', 'os-2', 'Design de posts', false, NOW(), NOW()),
+('check-2-4', 'os-2', 'Programação de posts', false, NOW(), NOW()),
 
 -- OS-3: Design Logo
-('check-3-1', 'os-3', 'Briefing com cliente', true),
-('check-3-2', 'os-3', 'Desenvolvimento de conceitos', true),
-('check-3-3', 'os-3', 'Apresentação de propostas', true),
-('check-3-4', 'os-3', 'Ajustes finais', true);
+('check-3-1', 'os-3', 'Briefing com cliente', true, NOW(), NOW()),
+('check-3-2', 'os-3', 'Desenvolvimento de conceitos', true, NOW(), NOW()),
+('check-3-3', 'os-3', 'Apresentação de propostas', true, NOW(), NOW()),
+('check-3-4', 'os-3', 'Ajustes finais', true, NOW(), NOW());
 
 -- Inserir atividades
 INSERT INTO activities (id, service_order_id, description, status, created_by) VALUES
