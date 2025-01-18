@@ -1,0 +1,5 @@
+[33m19ba395[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fix: resolvendo conflitos e padronizando nomes de propriedades
+[33md4c8a61[m feat: atualizando configurações do projeto e corrigindo tipagem
+[33mf7e1b18[m fix: corrigindo erros de build e tipagem
+[33md97de82[m fix: ajustando configurações para deploy no Vercel
+[33mf3f6233[m fix: corrigindo import do DeleteIcon e outros erros de TypeScript

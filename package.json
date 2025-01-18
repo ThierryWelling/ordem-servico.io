@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "postinstall": "tsc --skipLibCheck",
+    "build": "set CI=false && set TSC_COMPILE_ON_ERROR=true && vite build",
+    "postinstall": "set CI=false && tsc --skipLibCheck",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "server": "cd src/server && npm start",

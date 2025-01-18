@@ -1,0 +1,145 @@
+# Páginas do Sistema de Controle de Produção de Ordens de Serviço
+
+## 1. Página de Login (/login)
+- Formulário de login com email e senha
+- Link para recuperação de senha
+- Mensagens de erro de autenticação
+- Redirecionamento baseado no nível de acesso
+
+## 2. Página de Recuperação de Senha (/recover-password)
+- Formulário para inserir email
+- Envio de link de recuperação
+- Página de redefinição de senha
+- Confirmação de alteração
+
+## 3. Dashboard Principal (/dashboard)
+### Para Administradores:
+- Gráficos de desempenho geral
+- Lista de ordens de serviço recentes
+- Indicadores de produtividade
+- Status dos colaboradores ativos
+- Alertas de prazos
+- Métricas de conclusão
+
+### Para Colaboradores:
+- Lista de tarefas atribuídas
+- Progresso das atividades atuais
+- Checklist pessoal
+- Notificações pendentes
+- Prazos próximos
+
+## 4. Ordens de Serviço (/service-orders)
+### Lista Principal:
+- Tabela com todas as ordens
+- Filtros por status, data, responsável
+- Busca por título/descrição
+- Ordenação por diferentes campos
+- Ações rápidas (editar, excluir)
+
+### Criação (/service-orders/new):
+- Formulário completo de nova ordem
+- Seleção de responsável
+- Definição de prioridade
+- Criação de checklist
+- Upload de anexos
+
+### Detalhes (/service-orders/:id):
+- Visualização completa da ordem
+- Histórico de alterações
+- Checklist interativo
+- Comentários
+- Anexos
+- Ações de status
+
+## 5. Gestão de Tarefas (/tasks)
+- Lista de todas as tarefas
+- Filtros avançados
+- Kanban board
+- Visualização em calendário
+- Atribuição rápida
+- Marcação de progresso
+
+## 6. Chat (/chat)
+- Lista de conversas
+- Chat em tempo real
+- Envio de mensagens
+- Gravação de áudio
+- Upload de arquivos
+- Histórico de conversas
+- Busca em mensagens
+
+## 7. Perfil do Usuário (/profile)
+- Informações pessoais
+- Alteração de senha
+- Preferências de notificação
+- Histórico de atividades
+- Estatísticas pessoais
+
+## 8. Configurações (/settings)
+### Para Administradores:
+- Configurações gerais do sistema
+- Gestão de usuários
+- Níveis de acesso
+- Backup e restauração
+- Logs do sistema
+
+### Para Usuários:
+- Preferências de interface
+- Notificações
+- Tema do sistema
+- Atalhos personalizados
+
+## 9. Gestão de Usuários (/users) - Apenas Admin
+- Lista de usuários
+- Criação de novos usuários
+- Edição de permissões
+- Desativação de contas
+- Histórico de ações
+
+## 10. Relatórios (/reports) - Apenas Admin
+- Relatórios de produtividade
+- Análise de tempo
+- Estatísticas de conclusão
+- Desempenho por usuário
+- Exportação de dados
+- Gráficos personalizados
+
+## 11. Notificações (/notifications)
+- Centro de notificações
+- Filtros por tipo
+- Marcação de lidas/não lidas
+- Histórico completo
+- Preferências de alerta
+
+## 12. Anexos (/attachments)
+- Gerenciador de arquivos
+- Visualização de documentos
+- Download de arquivos
+- Organização por pastas
+- Busca de arquivos
+
+## 13. Página de Erro (404, 500)
+- Mensagem amigável
+- Botão de retorno
+- Sugestões de navegação
+- Contato do suporte
+
+## Componentes Comuns em Todas as Páginas:
+### Cabeçalho:
+- Logo do sistema
+- Barra de pesquisa global
+- Notificações
+- Menu de usuário
+- Atalhos rápidos
+
+### Menu Lateral:
+- Navegação principal
+- Atalhos frequentes
+- Toggle de expansão
+- Status do usuário
+
+### Rodapé:
+- Informações do sistema
+- Links úteis
+- Status do servidor
+- Versão do aplicativo 

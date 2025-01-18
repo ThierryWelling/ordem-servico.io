@@ -4,9 +4,12 @@ export interface User {
     email: string;
     role: 'admin' | 'collaborator' | 'user';
     sequence: number;
-    company_name?: string;
-    company_logo?: string;
+    companyName: string;
+    companyLogo?: string;
+    profilePicture: string;
     status: 'active' | 'inactive';
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface Task {
@@ -15,9 +18,10 @@ export interface Task {
     description: string;
     status: 'pending' | 'in_progress' | 'completed';
     priority: 'low' | 'medium' | 'high';
-    assigned_to?: string;
-    created_at: string;
-    updated_at: string;
+    assignedTo: string;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
     checklist: ChecklistItem[];
 }
 
@@ -27,32 +31,59 @@ export interface ServiceOrder {
     description: string;
     status: 'pending' | 'in_progress' | 'completed';
     priority: 'low' | 'medium' | 'high';
-    assigned_to: string;
-    created_by: string;
+    assignedTo: string;
+    createdBy: string;
     checklist: ChecklistItem[];
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface ChecklistItem {
     id: string;
     title: string;
+    text: string;
+    description?: string;
     completed: boolean;
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface SystemSettings {
     theme: 'light' | 'dark';
     language: 'pt-BR' | 'en-US';
     notifications: boolean;
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoPath: string;
+    companyName: string;
 }
 
 export interface Activity {
     id: string;
-    type: 'task_created' | 'task_updated' | 'task_completed';
+    type: 'create' | 'update' | 'delete';
     description: string;
-    user_id: string;
-    task_id: string;
-    created_at: string;
+    userId: string;
+    serviceOrderId: string;
+    status: 'pending' | 'completed';
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Comment {
+    id: string;
+    text: string;
+    userId: string;
+    serviceOrderId: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ChatMessage {
+    id: string;
+    text: string;
+    senderId: string;
+    receiverId: string;
+    createdAt: string;
+    updatedAt: string;
+    read: boolean;
 } 

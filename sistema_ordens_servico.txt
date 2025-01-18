@@ -1,0 +1,198 @@
+# Sistema de Controle de Produção de Ordens de Serviço
+
+## Visão Geral
+Um aplicativo web para gerenciamento de ordens de serviço com foco em produção industrial, permitindo o acompanhamento de tarefas, comunicação entre colaboradores e gestão de fluxo de trabalho.
+
+## Paleta de Cores
+- Cor primária: #1976d2 (Azul Material UI)
+- Cor secundária: #dc004e (Vermelho para ações críticas)
+- Background: #f5f5f5 (Cinza claro)
+- Texto principal: #333333
+- Texto secundário: #666666
+- Sucesso: #4caf50 (Verde)
+- Alerta: #ff9800 (Laranja)
+- Erro: #f44336 (Vermelho)
+
+## Layout
+- Design responsivo baseado em Material UI
+- Layout em grid com 12 colunas
+- Navegação lateral (drawer) retrátil
+- Cabeçalho fixo com barra de pesquisa e notificações
+- Cards para exibição de informações
+- Modais para formulários e detalhes
+
+## Funcionalidades Principais
+
+### 1. Sistema de Autenticação
+- Login com email e senha
+- Tokens JWT para autenticação
+- Diferentes níveis de acesso (admin, supervisor, colaborador)
+- Recuperação de senha via email
+
+### 2. Dashboard
+#### Para Administradores:
+- Visão geral de todas as ordens de serviço
+- Gráficos de desempenho
+- Indicadores de produtividade
+- Status de colaboradores
+
+#### Para Colaboradores:
+- Tarefas atribuídas
+- Progresso das atividades
+- Checklist pessoal
+- Notificações
+
+### 3. Gestão de Ordens de Serviço
+- Criação de ordem de serviço com:
+  - Título
+  - Descrição
+  - Prioridade
+  - Data de início/término
+  - Responsável
+  - Checklist de atividades
+  - Anexos
+- Status da ordem:
+  - Pendente
+  - Em andamento
+  - Em revisão
+  - Concluída
+  - Cancelada
+
+### 4. Sistema de Checklist
+- Itens marcáveis
+- Descrição detalhada
+- Responsável por item
+- Data limite
+- Status de conclusão
+- Observações
+
+### 5. Chat Integrado
+- Comunicação em tempo real
+- Suporte a mensagens de texto
+- Envio de áudio
+- Anexos e imagens
+- Histórico de conversas
+- Notificações
+
+## Partes Complexas
+
+### 1. Fluxo de Trabalho das Ordens de Serviço
+```typescript
+interface ServiceOrder {
+  id: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'in_review' | 'completed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  created_at: Date;
+  updated_at: Date;
+  deadline: Date;
+  assigned_to: string;
+  checklist: ChecklistItem[];
+  attachments: Attachment[];
+}
+```
+
+O fluxo segue estas etapas:
+1. Criação da ordem
+2. Atribuição ao colaborador
+3. Início do trabalho
+4. Atualização de progresso
+5. Revisão
+6. Conclusão
+
+### 2. Sistema de Checklist
+```typescript
+interface ChecklistItem {
+  id: string;
+  title: string;
+  description: string;
+  is_completed: boolean;
+  assigned_to: string;
+  deadline: Date;
+  service_order_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+```
+
+Funcionamento:
+- Cada item pode ser marcado/desmarcado
+- Atualização automática do progresso
+- Notificações de prazo
+- Histórico de alterações
+
+### 3. Chat em Tempo Real
+```typescript
+interface ChatMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  type: 'text' | 'audio' | 'file';
+  file_url?: string;
+  created_at: Date;
+}
+```
+
+Implementação:
+- WebSocket para mensagens em tempo real
+- Gravação de áudio no navegador
+- Upload de arquivos com preview
+- Sistema de notificações push
+
+### 4. Sistema de Notificações
+```typescript
+interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  read: boolean;
+  created_at: Date;
+}
+```
+
+Funcionamento:
+- Notificações em tempo real
+- Marcação de leitura
+- Histórico persistente
+- Diferentes tipos de alerta
+
+## Banco de Dados
+- MySQL para dados persistentes
+- Redis para cache e sessões
+- Tabelas principais:
+  - users
+  - service_orders
+  - checklist_items
+  - chat_messages
+  - notifications
+  - attachments
+
+## API RESTful
+- Endpoints organizados por recurso
+- Autenticação via JWT
+- Rate limiting
+- Validação de dados
+- Documentação com Swagger
+
+## Segurança
+- Sanitização de inputs
+- Proteção contra XSS
+- CSRF tokens
+- Rate limiting
+- Logs de auditoria
+- Backup automático
+
+Este sistema é construído com:
+- Frontend: React + TypeScript
+- Backend: Node.js + Express
+- Banco de Dados: MySQL
+- Cache: Redis
+- WebSocket: Socket.io
+- UI: Material-UI
+- Estado: Redux
+- Formulários: Formik + Yup
+- Testes: Jest + React Testing Library 
