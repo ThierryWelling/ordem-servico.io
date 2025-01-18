@@ -1,58 +1,85 @@
-export interface User {
+// Interfaces para o banco de dados (snake_case)
+export interface DbUser {
     id: string;
     name: string;
     email: string;
-    role: 'admin' | 'collaborator' | 'user';
-    sequence: number;
-    companyName?: string;
-    companyLogo?: string;
-    status: 'active' | 'inactive';
-}
-
-export interface Task {
-    id: string;
-    title: string;
-    description: string;
-    status: 'pending' | 'in_progress' | 'completed';
-    priority: 'low' | 'medium' | 'high';
-    assignedTo?: string;
-    createdAt: string;
-    updatedAt: string;
-    checklist: ChecklistItem[];
-}
-
-export interface ServiceOrder {
-    id: string;
-    title: string;
-    description: string;
-    status: 'pending' | 'in_progress' | 'completed';
-    priority: 'low' | 'medium' | 'high';
-    assignedTo: string;
-    createdBy: string;
-    checklist: ChecklistItem[];
+    role: 'admin' | 'collaborator';
+    profile_picture?: string;
+    sequence?: number;
     created_at: string;
     updated_at: string;
 }
 
-export interface ChecklistItem {
+export interface DbChecklistItem {
     id: string;
+    service_order_id: string;
     title: string;
     completed: boolean;
     created_at: string;
     updated_at: string;
 }
 
-export interface SystemSettings {
-    theme: 'light' | 'dark';
-    language: 'pt-BR' | 'en-US';
-    notifications: boolean;
+export interface DbServiceOrder {
+    id: string;
+    title: string;
+    description: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    priority: 'low' | 'medium' | 'high';
+    created_by: string;
+    assigned_to?: string;
+    created_by_name?: string;
+    assigned_to_name?: string;
+    created_at: string;
+    updated_at: string;
+    completed_at?: string;
+    checklist?: DbChecklistItem[];
+}
+
+// Interfaces para o frontend (camelCase)
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: 'admin' | 'collaborator';
+    profilePicture?: string;
+    sequence?: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ChecklistItem {
+    id: string;
+    serviceOrderId: string;
+    title: string;
+    completed: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ServiceOrder {
+    id: string;
+    title: string;
+    description: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+    priority: 'low' | 'medium' | 'high';
+    createdBy: string;
+    assignedTo?: string;
+    createdByName?: string;
+    assignedToName?: string;
+    createdAt: string;
+    updatedAt: string;
+    completedAt?: string;
+    checklist?: ChecklistItem[];
 }
 
 export interface Activity {
     id: string;
-    type: 'task_created' | 'task_updated' | 'task_completed';
+    serviceOrderId: string;
     description: string;
-    userId: string;
-    taskId: string;
-    created_at: string;
+    status: 'pending' | 'completed';
+    createdBy: string;
+    createdByName?: string;
+    createdAt: string;
+    updatedAt: string;
+    completedAt?: string;
 } 

@@ -22,6 +22,7 @@ export interface Task {
     createdBy: string;
     createdAt: string;
     updatedAt: string;
+    completedAt?: string;
     checklist: ChecklistItem[];
 }
 
@@ -32,20 +33,23 @@ export interface ServiceOrder {
     status: 'pending' | 'in_progress' | 'completed';
     priority: 'low' | 'medium' | 'high';
     assignedTo: string;
+    assignedToName?: string;
     createdBy: string;
+    createdByName?: string;
     checklist: ChecklistItem[];
     createdAt: string;
     updatedAt: string;
+    completedAt?: string;
 }
 
 export interface ChecklistItem {
     id: string;
     title: string;
-    text: string;
     description?: string;
     completed: boolean;
     createdAt: string;
     updatedAt: string;
+    serviceOrderId?: string;
 }
 
 export interface SystemSettings {
@@ -65,6 +69,7 @@ export interface Activity {
     userId: string;
     serviceOrderId: string;
     status: 'pending' | 'completed';
+    details?: Record<string, any>;
     createdAt: string;
     updatedAt: string;
 }

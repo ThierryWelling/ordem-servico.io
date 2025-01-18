@@ -6,19 +6,20 @@ import {
   DialogActions,
   Button,
 } from '@mui/material';
+import { User } from '../types';
 
 interface UserSequenceDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (sequence: number) => void;
-  currentSequence: number;
+  users: User[];
+  onUpdateSequences: (updatedUsers: User[]) => Promise<void>;
 }
 
 const UserSequenceDialog: React.FC<UserSequenceDialogProps> = ({
   open,
   onClose,
-  onSave,
-  currentSequence,
+  users,
+  onUpdateSequences
 }) => {
   return (
     <Dialog open={open} onClose={onClose}>
@@ -28,7 +29,7 @@ const UserSequenceDialog: React.FC<UserSequenceDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => onSave(currentSequence)} color="primary">
+        <Button onClick={() => onUpdateSequences(users)} color="primary">
           Salvar
         </Button>
       </DialogActions>

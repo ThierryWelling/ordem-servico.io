@@ -121,7 +121,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
     e.preventDefault();
     if (!draggedTask) return;
 
-    const canDrop = canDropTask(draggedTask.assigned_to || '', targetUserId);
+    const canDrop = canDropTask(draggedTask.assignedTo || '', targetUserId);
     
     if (!canDrop) {
       setSnackbar({
@@ -136,7 +136,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
       setLoading(true);
       await serviceOrderService.updateServiceOrder(draggedTask.id, {
         ...draggedTask,
-        assigned_to: targetUserId,
+        assignedTo: targetUserId,
         status: 'in_progress'
       });
 
@@ -173,7 +173,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
 
         // Se tiver collaboratorId, filtra apenas as tarefas desse colaborador
         const filteredTasks = collaboratorId 
-          ? tasksData.filter((task: ServiceOrder) => task.assigned_to === collaboratorId)
+          ? tasksData.filter((task: ServiceOrder) => task.assignedTo === collaboratorId)
           : tasksData;
 
         setTasks(filteredTasks);
@@ -225,34 +225,38 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!taskToDelete) return;
-
-    try {
-      await serviceOrderService.deleteServiceOrder(taskToDelete.id);
-      const updatedTasks = tasks.filter(task => task.id !== taskToDelete.id);
-      setTasks(updatedTasks);
-      setSnackbar({
-        open: true,
-        message: 'Tarefa excluída com sucesso',
-        severity: 'success'
-      });
-    } catch (error) {
-      console.error('Erro ao excluir tarefa:', error);
-      setSnackbar({
-        open: true,
-        message: 'Erro ao excluir tarefa',
-        severity: 'error'
-      });
-    } finally {
-      setDeleteDialogOpen(false);
-      setTaskToDelete(null);
-    }
-  };
-
   const handleCancelDelete = () => {
     setDeleteDialogOpen(false);
     setTaskToDelete(null);
+  };
+
+  const deleteTask = () => {
+    if (!taskToDelete) return;
+    
+    setLoading(true);
+    serviceOrderService.deleteServiceOrder(taskToDelete.id)
+      .then(() => {
+        const updatedTasks = tasks.filter(task => task.id !== taskToDelete.id);
+        setTasks(updatedTasks);
+        setSnackbar({
+          open: true,
+          message: 'Tarefa excluída com sucesso',
+          severity: 'success'
+        });
+      })
+      .catch((error) => {
+        console.error('Erro ao excluir tarefa:', error);
+        setSnackbar({
+          open: true,
+          message: 'Erro ao excluir tarefa',
+          severity: 'error'
+        });
+      })
+      .finally(() => {
+        setDeleteDialogOpen(false);
+        setTaskToDelete(null);
+        setLoading(false);
+      });
   };
 
   const handleEditTask = (task: ServiceOrder) => {
@@ -274,6 +278,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
         message: 'Tarefa atualizada com sucesso',
         severity: 'success'
       });
+      return true;
     } catch (error) {
       console.error('Erro ao atualizar lista de tarefas:', error);
       setSnackbar({
@@ -281,6 +286,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
         message: 'Erro ao atualizar lista de tarefas',
         severity: 'error'
       });
+      return false;
     }
   };
 
@@ -353,7 +359,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
 
             <Box sx={{ mt: 2 }}>
               {tasks
-                .filter(task => task.assigned_to === visibleUser.id)
+                .filter(task => task.assignedTo === visibleUser.id)
                 .map(task => (
                   <Card
                     key={task.id}
@@ -411,7 +417,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
                 ))}
             </Box>
 
-            {tasks.filter(task => task.assigned_to === visibleUser.id).length === 0 && (
+            {tasks.filter(task => task.assignedTo === visibleUser.id).length === 0 && (
               <Typography color="textSecondary" align="center">
                 Nenhuma tarefa atribuída
               </Typography>
@@ -432,13 +438,37 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
       <CreateTaskDialog
         open={createTaskDialogOpen}
         onClose={() => setCreateTaskDialogOpen(false)}
-        onSave={handleTaskSaved}
+        onSave={async (title, description, checklist) => {
+          try {
+            // Criar nova tarefa
+            await serviceOrderService.createServiceOrder({
+              title,
+              description,
+              checklist,
+              status: 'pending',
+              priority: 'medium',
+              assignedTo: collaboratorId || user?.id || '',
+              createdBy: user?.id || ''
+            });
+            // Atualizar lista
+            await handleTaskSaved();
+            // Fechar diálogo
+            setCreateTaskDialogOpen(false);
+          } catch (error) {
+            console.error('Erro ao criar tarefa:', error);
+            setSnackbar({
+              open: true,
+              message: 'Erro ao criar tarefa',
+              severity: 'error'
+            });
+          }
+        }}
       />
 
       <UserSequenceDialog
         open={sequenceDialogOpen}
         onClose={() => setSequenceDialogOpen(false)}
-        users={users}
+        users={users.filter(u => u.role === 'collaborator')}
         onUpdateSequences={handleUpdateSequences}
       />
 
@@ -451,7 +481,7 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelDelete}>Cancelar</Button>
-          <Button onClick={handleConfirmDelete} color="error">
+          <Button onClick={deleteTask} color="error">
             Excluir
           </Button>
         </DialogActions>

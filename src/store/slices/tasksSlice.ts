@@ -1,17 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-interface Task {
-    id: string;
-    title: string;
-    description: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-    priority: 'low' | 'medium' | 'high';
-    created_by: string;
-    assigned_to?: string;
-    created_at: string;
-    updated_at: string;
-    completed_at?: string;
-}
+import { Task } from '../../types';
 
 interface TasksState {
     tasks: Task[];
@@ -63,7 +51,7 @@ const tasksSlice = createSlice({
             if (task) {
                 task.status = action.payload.status;
                 if (action.payload.status === 'completed') {
-                    task.completed_at = new Date().toISOString();
+                    task.completedAt = new Date().toISOString();
                 }
             }
         }
