@@ -1,5 +1,6 @@
 import { User, Task } from '../types';
 import { mockUsers } from '../mock/data';
+import { v4 as uuidv4 } from 'uuid';
 
 const mockApi = {
   login: async (email: string, password: string): Promise<User | null> => {
@@ -20,9 +21,10 @@ const mockTasks: Task[] = [
         description: 'Descrição da tarefa 1',
         status: 'pending',
         priority: 'high',
-        assigned_to: 'user1',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        assignedTo: 'user1',
+        createdBy: 'user1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         checklist: []
     }
 ];

@@ -85,7 +85,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ taskId, onUpdate }) => {
               onClick={() => handleChecklistItemToggle(item)}
             >
               <Checkbox checked={item.completed} />
-              <ListItemText primary={item.text} />
+              <ListItemText primary={item.title} />
             </ListItem>
           ))}
         </List>

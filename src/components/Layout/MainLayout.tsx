@@ -40,6 +40,7 @@ import SettingsDialog from '../Settings/SettingsDialog';
 import Chat from '../Chat';
 import { useTranslation } from '../../translations';
 import ProfilePictureUpload from '../ProfilePictureUpload';
+import { User, ChatMessage } from '../../types';
 
 const drawerWidth = 260;
 const minDrawerWidth = 80;
@@ -384,9 +385,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
       {chatOpen && (
         <Chat 
-          messages={[]} 
-          onSendMessage={() => {}} 
-          user={user} 
+          user={user}
+          onSendMessage={(message: string) => {
+            // Implementar lógica de envio de mensagem
+            console.log('Mensagem enviada:', message);
+          }}
         />
       )}
 

@@ -278,7 +278,6 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
         message: 'Tarefa atualizada com sucesso',
         severity: 'success'
       });
-      return true;
     } catch (error) {
       console.error('Erro ao atualizar lista de tarefas:', error);
       setSnackbar({
@@ -286,7 +285,6 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
         message: 'Erro ao atualizar lista de tarefas',
         severity: 'error'
       });
-      return false;
     }
   };
 
@@ -440,19 +438,19 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
         onClose={() => setCreateTaskDialogOpen(false)}
         onSave={async (title, description, checklist) => {
           try {
-            // Criar nova tarefa
-            await serviceOrderService.createServiceOrder({
+            const newTask = await serviceOrderService.createServiceOrder({
               title,
               description,
-              checklist,
+              checklist: checklist.map(item => ({
+                ...item,
+                serviceOrderId: ''  // Será preenchido pelo backend
+              })),
               status: 'pending',
               priority: 'medium',
               assignedTo: collaboratorId || user?.id || '',
               createdBy: user?.id || ''
             });
-            // Atualizar lista
             await handleTaskSaved();
-            // Fechar diálogo
             setCreateTaskDialogOpen(false);
           } catch (error) {
             console.error('Erro ao criar tarefa:', error);
