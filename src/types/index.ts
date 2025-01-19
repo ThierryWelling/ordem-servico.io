@@ -1,17 +1,17 @@
-// Re-exportando todas as interfaces do arquivo types.d.ts
+// Re-exportando todas as interfaces
 export type {
+    DbUser,
+    DbChecklistItem,
+    DbServiceOrder,
     User,
     NewUser,
     UpdateUser,
-    ServiceOrder,
     ChecklistItem,
+    ServiceOrder,
     Activity,
     Task,
     SystemSettings,
     Comment,
     ChatMessage,
-    ChatProps,
-    DbUser,
-    DbServiceOrder,
-    DbChecklistItem
-} from '../types.d'; 
+    ChatProps
+} from './types'; 
