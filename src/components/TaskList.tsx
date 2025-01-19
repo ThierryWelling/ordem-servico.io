@@ -25,6 +25,8 @@ import {
   Edit as EditIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
+  Autorenew as AutorenewIcon,
+  Pending as PendingIcon,
 } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
@@ -38,25 +40,25 @@ interface TaskListProps {
   collaboratorId?: string;
 }
 
-const getStatusIcon = (status: string) => {
+const getStatusIcon = (status: string): React.ReactElement => {
   switch (status) {
     case 'completed':
-      return <CheckCircleIcon sx={{ color: 'success.main' }} />;
+      return <CheckCircleIcon />;
     case 'in_progress':
-      return <ScheduleIcon sx={{ color: 'warning.main' }} />;
+      return <AutorenewIcon />;
     default:
-      return <ErrorIcon sx={{ color: 'error.main' }} />;
+      return <PendingIcon />;
   }
 };
 
-const getStatusColor = (status: string): 'success' | 'error' | 'warning' => {
+const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
   switch (status) {
     case 'completed':
       return 'success';
     case 'in_progress':
-      return 'warning';
+      return 'primary';
     default:
-      return 'error';
+      return 'default';
   }
 };
 
@@ -450,7 +452,9 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
               assignedTo: collaboratorId || user?.id || '',
               createdBy: user?.id || ''
             });
-            await handleTaskSaved();
+
+            // Atualiza a lista de tarefas
+            handleTaskSaved();
             setCreateTaskDialogOpen(false);
           } catch (error) {
             console.error('Erro ao criar tarefa:', error);
