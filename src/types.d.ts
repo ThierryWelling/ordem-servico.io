@@ -64,8 +64,8 @@ export interface User {
     companyLogo?: string;
     profilePicture?: string;
     status: 'active' | 'inactive';
-    createdAt?: string;
-    updatedAt?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface NewUser {
@@ -124,7 +124,6 @@ export interface Activity {
     status: 'pending' | 'completed';
     createdBy: string;
     createdByName?: string;
-    created_by_name?: string;
     createdAt: string;
     updatedAt: string;
     completedAt?: string;
@@ -176,7 +175,7 @@ export interface ChatMessage {
 }
 
 export interface ChatProps {
-    messages: any[];
+    messages: ChatMessage[];
     onSendMessage: () => void;
     user: User;
 }
