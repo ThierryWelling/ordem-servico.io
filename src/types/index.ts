@@ -14,4 +14,4 @@ export type {
     Comment,
     ChatMessage,
     ChatProps
-} from './types'; 
+} from './types';
