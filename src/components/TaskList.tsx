@@ -292,15 +292,13 @@ const TaskList: React.FC<TaskListProps> = ({ collaboratorId }) => {
 
   const handleUpdateSequences = async (updatedUsers: User[]) => {
     try {
-      const result = await authService.updateUserSequences(updatedUsers);
-      if (result) {
-        setSnackbar({
-          open: true,
-          message: 'Sequência atualizada com sucesso',
-          severity: 'success'
-        });
-        setUsers(result);
-      }
+      await authService.updateUserSequences(updatedUsers);
+      setUsers(updatedUsers);
+      setSnackbar({
+        open: true,
+        message: 'Sequência atualizada com sucesso',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Erro ao atualizar sequência:', error);
       setSnackbar({
