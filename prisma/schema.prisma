@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          String
+  status        String    @default("active")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  serviceOrders ServiceOrder[]
+}
+
+model ServiceOrder {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  status      String
+  priority    String
+  createdBy   String
+  assignedTo  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  user        User      @relation(fields: [createdBy], references: [id])
+  checklist   ChecklistItem[]
+}
+
+model ChecklistItem {
+  id             String       @id @default(uuid())
+  serviceOrderId String
+  title          String
+  completed      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+} 

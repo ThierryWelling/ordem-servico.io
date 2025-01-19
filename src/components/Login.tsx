@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { TextField, Button, Box, Typography, Container, Alert } from '@mui/material';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
-import { supabase } from '../config/supabase';
+import api from '../services/api';
 import { RootState } from '../store';
 
 const Login: React.FC = () => {
@@ -23,28 +23,9 @@ const Login: React.FC = () => {
         e.preventDefault();
         try {
             dispatch(loginStart());
-            
-            const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-
-            if (signInError) {
-                throw new Error(signInError.message);
-            }
-
-            if (data?.user) {
-                dispatch(loginSuccess({
-                    user: {
-                        id: data.user.id,
-                        email: data.user.email,
-                        role: 'user', // Você pode ajustar isso baseado nos metadados do usuário
-                        name: data.user.user_metadata?.name || email,
-                    },
-                    token: data.session?.access_token
-                }));
-                navigate('/tasks');
-            }
+            const { data } = await api.post('/auth/login', { email, password });
+            dispatch(loginSuccess(data));
+            navigate('/tasks');
         } catch (err) {
             dispatch(loginFailure(err instanceof Error ? err.message : 'Erro ao fazer login'));
         }
