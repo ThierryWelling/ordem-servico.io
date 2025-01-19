@@ -6,13 +6,19 @@ export const mockUsers: User[] = [
         name: 'João Silva',
         email: 'joao@example.com',
         role: 'collaborator',
-        sequence: 1
+        sequence: 1,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     },
     {
         id: '2',
-        name: 'Maria Santos',
-        email: 'maria@example.com',
+        name: 'Admin',
+        email: 'admin@example.com',
         role: 'admin',
-        sequence: 2
+        sequence: 2,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     }
 ]; 

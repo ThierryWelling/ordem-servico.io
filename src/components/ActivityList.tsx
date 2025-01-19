@@ -9,6 +9,7 @@ import {
   Checkbox,
   TextField,
   Box,
+  Typography,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -100,7 +101,7 @@ const ActivityList: React.FC<ActivityListProps> = ({
             <>
               <ListItemText
                 primary={activity.description}
-                secondary={`Criado por: ${activity.created_by_name || 'Desconhecido'}`}
+                secondary={`Criado por: ${activity.createdByName || 'Desconhecido'}`}
                 sx={{
                   textDecoration: activity.status === 'completed' ? 'line-through' : 'none',
                   color: activity.status === 'completed' ? 'text.secondary' : 'text.primary',

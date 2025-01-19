@@ -234,8 +234,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div" sx={{ color: 'text.primary' }}>
-              {user?.companyName || 'Sistema de Controle'}
+            <Typography variant="h6" noWrap component="div">
+              {user?.companyName || 'Sistema de Ordens de Serviço'}
             </Typography>
           </Box>
 

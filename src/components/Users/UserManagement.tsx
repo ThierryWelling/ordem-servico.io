@@ -44,7 +44,9 @@ const UserManagement: React.FC = () => {
     password: '',
     status: 'active',
     companyName: '',
-    sequence: 0
+    sequence: 0,
+    companyLogo: '',
+    profilePicture: ''
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -87,8 +89,8 @@ const UserManagement: React.FC = () => {
         password: '',
         status: user.status,
         companyName: user.companyName || '',
-        companyLogo: user.companyLogo,
-        profilePicture: user.profilePicture
+        companyLogo: user.companyLogo || '',
+        profilePicture: user.profilePicture || ''
       });
     } else {
       setSelectedUser(null);
@@ -99,7 +101,9 @@ const UserManagement: React.FC = () => {
         password: '',
         status: 'active',
         companyName: '',
-        sequence: 0
+        sequence: 0,
+        companyLogo: '',
+        profilePicture: ''
       });
     }
     setOpenDialog(true);
@@ -115,7 +119,9 @@ const UserManagement: React.FC = () => {
       password: '',
       status: 'active',
       companyName: '',
-      sequence: 0
+      sequence: 0,
+      companyLogo: '',
+      profilePicture: ''
     });
   };
 
