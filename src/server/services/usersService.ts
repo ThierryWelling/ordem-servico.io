@@ -20,9 +20,10 @@ class UsersService {
         return users.length > 0 ? users[0] as User : null;
     }
 
-    async createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'> & { password: string }): Promise<User> {
+    async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> & { password: string }): Promise<User> {
         const id = uuidv4();
         const hashedPassword = await bcrypt.hash(userData.password, 10);
+        const timestamp = new Date().toISOString();
 
         const [result] = await pool.query<ResultSetHeader>(
             'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
@@ -37,12 +38,12 @@ class UsersService {
         return {
             id,
             ...userWithoutPassword,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            createdAt: timestamp,
+            updatedAt: timestamp
         };
     }
 
-    async updateUser(id: string, userData: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>): Promise<User | null> {
+    async updateUser(id: string, userData: Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt'>>): Promise<User | null> {
         const connection = await pool.getConnection();
         await connection.beginTransaction();
 
@@ -68,14 +69,14 @@ class UsersService {
             }
 
             if (updateFields.length > 0) {
-                const query = `UPDATE users SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = ?`;
+                const query = `UPDATE users SET ${updateFields.join(', ')}, updatedAt = NOW() WHERE id = ?`;
                 await connection.query<ResultSetHeader>(query, [...updateValues, id]);
             }
 
             await connection.commit();
 
             const [updatedUser] = await pool.query<RowDataPacket[]>(
-                'SELECT id, name, email, role, sequence, created_at, updated_at FROM users WHERE id = ?',
+                'SELECT id, name, email, role, sequence, createdAt, updatedAt FROM users WHERE id = ?',
                 [id]
             );
 
@@ -104,7 +105,7 @@ class UsersService {
             for (const user of users) {
                 if (user.sequence !== undefined) {
                     await connection.query<ResultSetHeader>(
-                        'UPDATE users SET sequence = ?, updated_at = NOW() WHERE id = ?',
+                        'UPDATE users SET sequence = ?, updatedAt = NOW() WHERE id = ?',
                         [user.sequence, user.id]
                     );
                 }

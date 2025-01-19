@@ -1,6 +1,7 @@
 import { Activity } from '../../types';
 import pool from '../config/database';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { v4 as uuidv4 } from 'uuid';
 
 class ActivitiesService {
     async getAllActivities(): Promise<Activity[]> {
@@ -10,19 +11,25 @@ class ActivitiesService {
         return activities as Activity[];
     }
 
-    async createActivity(activityData: Omit<Activity, 'id' | 'created_at'>): Promise<Activity> {
+    async createActivity(data: Omit<Activity, 'id' | 'createdAt' | 'updatedAt'>): Promise<Activity> {
+        const id = uuidv4();
+        const timestamp = new Date().toISOString();
+
         const [result] = await pool.query<ResultSetHeader>(
-            'INSERT INTO activities (service_order_id, user_id, action, details) VALUES (?, ?, ?, ?)',
-            [activityData.service_order_id, activityData.user_id, activityData.action, activityData.details]
+            'INSERT INTO activities (id, service_order_id, user_id, description, action, details) VALUES (?, ?, ?, ?, ?, ?)',
+            [id, data.serviceOrderId, data.userId, data.description, data.action, JSON.stringify(data.details)]
         );
 
-        const newActivity: Activity = {
-            id: result.insertId.toString(),
-            ...activityData,
-            created_at: new Date().toISOString()
-        };
+        if (result.affectedRows === 0) {
+            throw new Error('Erro ao criar atividade');
+        }
 
-        return newActivity;
+        return {
+            id,
+            ...data,
+            createdAt: timestamp,
+            updatedAt: timestamp
+        };
     }
 }
 

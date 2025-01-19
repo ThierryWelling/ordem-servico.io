@@ -115,6 +115,8 @@ export interface Activity {
     completedAt?: string;
     type?: 'create' | 'update' | 'delete';
     details?: Record<string, unknown>;
+    action?: string;
+    userId?: string;
 }
 
 export interface Task {

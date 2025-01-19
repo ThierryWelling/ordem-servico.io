@@ -1,6 +1,7 @@
 import { ServiceOrder, DbServiceOrder, DbChecklistItem } from '../../types';
 import { pool } from '../db';
 import { convertToCamelCase, convertToSnakeCase } from '../utils';
+import { ResultSetHeader } from 'mysql2';
 
 export const serviceOrdersService = {
   async getServiceOrders(): Promise<ServiceOrder[]> {
@@ -29,7 +30,7 @@ export const serviceOrdersService = {
 
   async createServiceOrder(data: Omit<ServiceOrder, 'id' | 'createdAt' | 'updatedAt'>): Promise<ServiceOrder> {
     const dbData = convertToSnakeCase<Omit<DbServiceOrder, 'id' | 'created_at' | 'updated_at'>>(data);
-    const [result] = await pool.query('INSERT INTO service_orders SET ?', dbData);
+    const [result] = await pool.query<ResultSetHeader>('INSERT INTO service_orders SET ?', dbData);
     const [newOrder] = await pool.query('SELECT * FROM service_orders WHERE id = ?', [result.insertId]);
     return convertToCamelCase<ServiceOrder>(newOrder[0]);
   },
