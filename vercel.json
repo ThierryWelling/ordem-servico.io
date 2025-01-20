@@ -13,10 +13,13 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "postgresql://ordem_de_servico_owner:ONT9fJS6ELVc@ep-old-voice-a8ddizjr.eastus2.azure.neon.tech/ordem_de_servico?sslmode=require",
+    "DATABASE_URL": "postgresql://ordem%20de%20servi%C3%A7o_owner:ONT9fJS6ELVc@ep-old-voice-a8ddizjr.eastus2.azure.neon.tech/ordem%20de%20servi%C3%A7o?sslmode=require",
     "NODE_ENV": "production"
   },
-  "buildCommand": "npm run build && npx prisma migrate deploy",
+  "buildCommand": "npx prisma generate && npx prisma migrate deploy && npm run build",
   "installCommand": "npm install",
-  "framework": null
+  "framework": null,
+  "scripts": {
+    "vercel-build": "npx prisma migrate deploy"
+  }
 } 
