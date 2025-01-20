@@ -13,7 +13,7 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "postgresql://ordem%20de%20servi%C3%A7o_owner:ONT9fJS6ELVc@ep-old-voice-a8ddizjr.eastus2.azure.neon.tech/ordem%20de%20servi%C3%A7o?sslmode=require",
+    "DATABASE_URL": "postgresql://neondb_owner:J9Zb0nEyqAHM@ep-withered-wind-a5mdpm0t.us-east-2.aws.neon.tech/neondb?sslmode=require",
     "NODE_ENV": "production"
   },
   "buildCommand": "npx prisma generate && npx prisma migrate deploy && npm run build",
