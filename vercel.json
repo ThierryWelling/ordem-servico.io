@@ -1,28 +1,41 @@
 {
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "buildCommand": "CI=false npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "installCommand": "npm install",
+  "env": {
+    "VITE_API_URL": "https://api.seu-dominio.com",
+    "NODE_ENV": "production",
+    "CI": "false",
+    "SKIP_PREFLIGHT_CHECK": "true",
+    "TSC_COMPILE_ON_ERROR": "true"
+  },
   "version": 2,
   "builds": [
     {
-      "src": "dist/server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "dist/server.js",
-      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
-        "Access-Control-Allow-Credentials": "true"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "nodeVersion": "20.x",
+        "distDir": "dist"
       }
     }
-  ],
-  "env": {
-    "DATABASE_URL": "postgresql://neondb_owner:J9Zb0nEyqAHM@ep-withered-wind-a5mdpm0t.us-east-2.aws.neon.tech/neondb?sslmode=require",
-    "NODE_ENV": "production"
-  },
-  "buildCommand": "npm run build && npx prisma generate && npx prisma migrate deploy",
-  "installCommand": "npm install",
-  "outputDirectory": "dist"
+  ]
 } 
